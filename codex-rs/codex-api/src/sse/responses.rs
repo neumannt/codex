@@ -467,6 +467,9 @@ pub fn process_responses_event(
                         .and_then(|response| response.get("id"))
                         .and_then(Value::as_str)
                         .map(str::to_owned);
+                    if let Some(usage) = response.and_then(|response| response.get("usage")) {
+                        codex_protocol::provider_cost::record_usage_cost(usage);
+                    }
                     let token_usage = response
                         .and_then(|response| response.get("usage"))
                         .and_then(|usage| {
@@ -496,6 +499,9 @@ pub fn process_responses_event(
                     .get("usage")
                     .filter(|usage| !usage.is_null())
                     .cloned();
+                if let Some(usage) = &metadata {
+                    codex_protocol::provider_cost::record_usage_cost(usage);
+                }
                 match serde_json::from_value::<ResponseCompleted>(resp_val) {
                     Ok(mut resp) => {
                         if let Some(metadata) = metadata {

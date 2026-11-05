@@ -138,6 +138,8 @@ struct StatusHistoryCell {
     show_chatgpt_usage_link: bool,
     /// The active provider is cortecs.ai: billing and limits live in the cortecs console.
     cortecs: bool,
+    /// Provider-reported cost of all requests in this process (cortecs.ai only).
+    session_cost_micros: Option<u64>,
     account: Option<StatusAccountDisplay>,
     thread_name: Option<String>,
     session_id: Option<String>,
@@ -426,6 +428,9 @@ impl StatusHistoryCell {
             remote_connection: remote_connection.cloned(),
             show_chatgpt_usage_link,
             cortecs,
+            session_cost_micros: cortecs
+                .then(codex_protocol::provider_cost::total_cost_micros)
+                .flatten(),
             account,
             thread_name,
             session_id,
@@ -839,6 +844,9 @@ impl StatusHistoryCell {
             push_label(&mut labels, &mut seen, "Collaboration mode");
         }
         push_label(&mut labels, &mut seen, "Token usage");
+        if self.session_cost_micros.is_some() {
+            push_label(&mut labels, &mut seen, "Cost");
+        }
         if self.token_usage.context_window.is_some() {
             push_label(&mut labels, &mut seen, "Context window");
         }
@@ -911,6 +919,15 @@ impl StatusHistoryCell {
         // Hide token usage only for ChatGPT subscribers
         if !matches!(self.account, Some(StatusAccountDisplay::ChatGpt { .. })) {
             lines.push(formatter.line("Token usage", self.token_usage_spans()));
+        }
+        if let Some(micros) = self.session_cost_micros {
+            lines.push(formatter.line(
+                "Cost",
+                vec![
+                    Span::from(codex_protocol::provider_cost::format_eur_micros(micros)),
+                    Span::from(" since start (reported by cortecs.ai)").dim(),
+                ],
+            ));
         }
 
         if let Some(spans) = self.context_window_spans() {
