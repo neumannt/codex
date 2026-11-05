@@ -399,8 +399,11 @@ impl AnalyticsEventsClient {
             }
         });
         let destination = AnalyticsEventsDestination::from_base_url(base_url, api_key_headers);
+        // cortecs fork: analytics are never delivered to OpenAI. Only the local debug
+        // capture file (used by tests) remains available.
+        let local_only = !matches!(destination, AnalyticsEventsDestination::Http { .. });
         Self {
-            queue: (analytics_enabled != Some(false)).then(|| {
+            queue: (local_only && analytics_enabled != Some(false)).then(|| {
                 AnalyticsEventsQueue::new(Arc::clone(&auth_manager), destination, runtime_auth)
             }),
         }

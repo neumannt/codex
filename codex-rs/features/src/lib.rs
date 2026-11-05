@@ -1835,7 +1835,8 @@ pub const FEATURES: &[FeatureSpec] = &[
         id: Feature::Plugins,
         key: "plugins",
         stage: Stage::Stable,
-        default_enabled: true,
+        // cortecs fork: the curated marketplace syncs from OpenAI (GitHub/chatgpt.com).
+        default_enabled: false,
     },
     FeatureSpec {
         id: Feature::SimplifiedSelectionHints,
@@ -1943,7 +1944,8 @@ pub const FEATURES: &[FeatureSpec] = &[
         id: Feature::PluginDiscoveryPrefetch,
         key: "plugin_discovery_prefetch",
         stage: Stage::Stable,
-        default_enabled: true,
+        // cortecs fork: the curated marketplace syncs from OpenAI (GitHub/chatgpt.com).
+        default_enabled: false,
     },
     FeatureSpec {
         id: Feature::PluginSharing,

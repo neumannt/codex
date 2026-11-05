@@ -165,14 +165,11 @@ pub(crate) mod announcement {
     use crate::version::CODEX_CLI_VERSION;
     use chrono::NaiveDate;
     use chrono::Utc;
-    use codex_http_client::ClientRouteClass;
     use codex_http_client::HttpClientFactory;
-    use codex_http_client::RouteAwareClientPool;
     use codex_protocol::account::PlanType;
     use regex_lite::Regex;
     use serde::Deserialize;
     use std::sync::OnceLock;
-    use std::time::Duration;
 
     static ANNOUNCEMENT_TIP: OnceLock<Option<AnnouncementTips>> = OnceLock::new();
     const CURRENT_OS: TargetOs = TargetOs::current();
@@ -249,14 +246,9 @@ pub(crate) mod announcement {
     }
 
     async fn fetch_announcement_tip_text(http_client_factory: HttpClientFactory) -> Option<String> {
-        let client = RouteAwareClientPool::new(http_client_factory, ClientRouteClass::Other);
-        let response = client
-            .get(ANNOUNCEMENT_TIP_URL)
-            .timeout(Duration::from_millis(2000))
-            .send()
-            .await
-            .ok()?;
-        response.error_for_status().ok()?.text().await.ok()
+        // cortecs fork: do not fetch OpenAI's announcement feed from GitHub.
+        let _ = (http_client_factory, ANNOUNCEMENT_TIP_URL);
+        None
     }
 
     /// Parsed once during prewarming; eligibility stays current across redraws and account changes.
