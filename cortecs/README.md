@@ -60,6 +60,7 @@ models without tool calling, can still be selected by name.
 | Paths & name | Command `cortecs-codex`, config in `~/.cortecs-codex` (override with `CODEX_HOME`), so it can coexist with a stock Codex install. Project-level `.codex/` and `AGENTS.md` files work as usual. |
 | Daemon | The background app-server daemon is off by default; the app server runs in-process. |
 | Costs | `/status` shows a `Cost` line: the sum of the per-request cost reported by cortecs since `cortecs-codex` started (all threads, including sub-agents and compaction). |
+| Untrusted folders | The folder prompt has a third choice, **Look without trusting**: the folder opens for this session only, nothing is saved, and `AGENTS.md`, project skills (`.agents/skills`, `.codex/skills`), project config, hooks and exec policies are ignored. Anything other than read-only commands needs your approval. `--untrusted` does the same without the prompt, also for `exec`. Folders marked `trust_level = "untrusted"` never get project skills. |
 | Thread titles | No automatic model-generated thread titles (they cost an extra request per thread). `/rename` still works. |
 
 You can turn things back on in `config.toml`, for example `[features] plugins = true` or
@@ -67,6 +68,8 @@ You can turn things back on in `config.toml`, for example `[features] plugins = 
 
 ## Tips
 
+- To inspect a repository you don't trust, choose **Look without trusting** at the folder
+  prompt or start with `cortecs-codex --untrusted`.
 - `/status` shows the model, provider, token usage, and the cost reported by cortecs so far.
   Budgets and detailed usage are in the cortecs console.
 - cortecs caches prompts automatically where the provider supports it. Long sessions get

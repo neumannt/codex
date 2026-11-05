@@ -116,6 +116,8 @@ pub(crate) struct OnboardingScreenArgs {
 #[derive(Default)]
 pub(crate) struct OnboardingResult {
     pub directory_trust_persisted: bool,
+    /// cortecs fork: folder the user chose to open without trusting, for this session only.
+    pub look_only_trust_target: Option<std::path::PathBuf>,
     pub should_exit: bool,
 }
 
@@ -227,6 +229,7 @@ impl OnboardingScreen {
                 cwd,
                 trust_target,
                 show_windows_create_sandbox_hint,
+                offer_look_only: false,
                 should_quit: false,
                 selection: None,
                 highlighted,
@@ -806,8 +809,17 @@ async fn run_onboarding_screen_inner(
             },
         )?;
     }
+    let look_only_trust_target = onboarding_screen.steps.iter().find_map(|step| match step {
+        Step::TrustDirectory(widget)
+            if widget.selection == Some(TrustDirectorySelection::LookOnly) =>
+        {
+            Some(widget.trust_target.clone())
+        }
+        _ => None,
+    });
     Ok(OnboardingResult {
         directory_trust_persisted,
+        look_only_trust_target,
         should_exit: onboarding_screen.should_exit(),
     })
 }
@@ -979,6 +991,7 @@ mod tests {
                 cwd: PathBuf::from("/workspace/project"),
                 trust_target: PathBuf::from("/workspace/project"),
                 show_windows_create_sandbox_hint: false,
+                offer_look_only: false,
                 should_quit: false,
                 selection: None,
                 highlighted: TrustDirectorySelection::Trust,
@@ -1046,6 +1059,7 @@ mod tests {
                     cwd: PathBuf::from("/workspace/project"),
                     trust_target: PathBuf::from("/workspace/project"),
                     show_windows_create_sandbox_hint: false,
+                    offer_look_only: false,
                     should_quit: false,
                     selection: None,
                     highlighted: TrustDirectorySelection::Trust,
@@ -1077,6 +1091,7 @@ mod tests {
                 cwd: PathBuf::from("/workspace/project"),
                 trust_target: PathBuf::from("/workspace/project"),
                 show_windows_create_sandbox_hint: false,
+                offer_look_only: false,
                 should_quit: false,
                 selection: Some(TrustDirectorySelection::Trust),
                 highlighted: TrustDirectorySelection::Trust,

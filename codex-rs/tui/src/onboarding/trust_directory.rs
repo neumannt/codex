@@ -34,6 +34,8 @@ pub(crate) struct TrustDirectoryWidget {
     pub cwd: PathBuf,
     pub trust_target: PathBuf,
     pub show_windows_create_sandbox_hint: bool,
+    /// cortecs fork: offer opening the folder restricted for this session without saving trust.
+    pub offer_look_only: bool,
     pub should_quit: bool,
     pub selection: Option<TrustDirectorySelection>,
     pub highlighted: TrustDirectorySelection,
@@ -50,6 +52,8 @@ pub(crate) enum TrustCancelAction {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TrustDirectorySelection {
     Trust,
+    /// Open restricted for this session only; nothing is saved.
+    LookOnly,
     Quit,
 }
 
@@ -66,6 +70,13 @@ impl WidgetRef for &TrustDirectoryWidget {
                 "Config, hooks, and exec policies from untrusted folders stay disabled. \
                  Trusted project folders can still contribute settings. Skills still load, \
                  and tools follow your permission settings. Opening will not change saved trust."
+            } else if self.offer_look_only {
+                "Trust this folder? Codex can read, edit, and run files here, subject to \
+                 your permission settings. Folder settings can run code automatically, \
+                 even without a model request. Continue only if you trust these files. \
+                 Your trust decision will be saved. To only look around, open it without \
+                 trusting: AGENTS.md, project skills, config, and hooks are ignored, and \
+                 anything other than read-only commands needs your approval."
             } else {
                 "Trust this folder? Codex can read, edit, and run files here, subject to \
                  your permission settings. Folder settings can run code automatically, \
@@ -77,26 +88,32 @@ impl WidgetRef for &TrustDirectoryWidget {
         )];
         children.push((1, RenderableItem::Borrowed(&"")));
 
-        let options: Vec<(&str, TrustDirectorySelection)> = vec![
-            (
-                if self.restricted && self.existing_task {
-                    "Open existing task"
-                } else if self.restricted {
-                    "Open restricted"
-                } else {
-                    "Trust and continue"
-                },
-                TrustDirectorySelection::Trust,
-            ),
-            (
-                match self.cancel {
-                    TrustCancelAction::Quit => "Quit",
-                    TrustCancelAction::AgentsOverview => "Back to Agent Command Center",
-                    TrustCancelAction::CurrentTask => "Keep current directory",
-                },
-                TrustDirectorySelection::Quit,
-            ),
-        ];
+        let options: Vec<(&str, TrustDirectorySelection)> = self
+            .options()
+            .into_iter()
+            .map(|selection| {
+                let text = match selection {
+                    TrustDirectorySelection::Trust => {
+                        if self.restricted && self.existing_task {
+                            "Open existing task"
+                        } else if self.restricted {
+                            "Open restricted"
+                        } else {
+                            "Trust and continue"
+                        }
+                    }
+                    TrustDirectorySelection::LookOnly => {
+                        "Look without trusting (this session only)"
+                    }
+                    TrustDirectorySelection::Quit => match self.cancel {
+                        TrustCancelAction::Quit => "Quit",
+                        TrustCancelAction::AgentsOverview => "Back to Agent Command Center",
+                        TrustCancelAction::CurrentTask => "Keep current directory",
+                    },
+                };
+                (text, selection)
+            })
+            .collect();
 
         for (idx, (text, selection)) in options.iter().enumerate() {
             children.push((
@@ -215,15 +232,23 @@ impl KeyboardHandler for TrustDirectoryWidget {
             return;
         }
 
+        let options = self.options();
+        let index = options
+            .iter()
+            .position(|option| *option == self.highlighted)
+            .unwrap_or(0);
         if keys::MOVE_UP.is_pressed(key_event) {
-            self.highlighted = TrustDirectorySelection::Trust;
+            self.highlighted = options[index.saturating_sub(1)];
         } else if keys::MOVE_DOWN.is_pressed(key_event) {
-            self.highlighted = TrustDirectorySelection::Quit;
+            self.highlighted = options[(index + 1).min(options.len() - 1)];
         } else if keys::SELECT_FIRST.is_pressed(key_event) {
             // A terminal response fragment can start with `1`; trust always requires an explicit
             // Enter confirmation after the directory prompt is visible.
             self.highlighted = TrustDirectorySelection::Trust;
-        } else if keys::SELECT_SECOND.is_pressed(key_event)
+        } else if self.offer_look_only && keys::SELECT_SECOND.is_pressed(key_event) {
+            self.highlighted = TrustDirectorySelection::LookOnly;
+        } else if (!self.offer_look_only && keys::SELECT_SECOND.is_pressed(key_event))
+            || (self.offer_look_only && keys::SELECT_THIRD.is_pressed(key_event))
             || keys::QUIT.is_pressed(key_event)
             || keys::CANCEL.is_pressed(key_event)
         {
@@ -231,6 +256,7 @@ impl KeyboardHandler for TrustDirectoryWidget {
         } else if keys::CONFIRM.is_pressed(key_event) {
             match self.highlighted {
                 TrustDirectorySelection::Trust => self.handle_trust(),
+                TrustDirectorySelection::LookOnly => self.handle_look_only(),
                 TrustDirectorySelection::Quit => self.handle_quit(),
             }
         }
@@ -252,6 +278,20 @@ impl TrustDirectoryWidget {
         self.highlighted = TrustDirectorySelection::Trust;
         self.error = None;
         self.selection = Some(TrustDirectorySelection::Trust);
+    }
+
+    fn handle_look_only(&mut self) {
+        self.error = None;
+        self.selection = Some(TrustDirectorySelection::LookOnly);
+    }
+
+    fn options(&self) -> Vec<TrustDirectorySelection> {
+        let mut options = vec![TrustDirectorySelection::Trust];
+        if self.offer_look_only && !self.restricted {
+            options.push(TrustDirectorySelection::LookOnly);
+        }
+        options.push(TrustDirectorySelection::Quit);
+        options
     }
 
     fn handle_quit(&mut self) {
@@ -285,6 +325,7 @@ mod tests {
             cwd: PathBuf::from("/workspace/project"),
             trust_target: PathBuf::from("/workspace/project"),
             show_windows_create_sandbox_hint: false,
+            offer_look_only: false,
             should_quit: false,
             selection: None,
             highlighted: TrustDirectorySelection::Trust,
@@ -301,6 +342,7 @@ mod tests {
             cwd: PathBuf::from("."),
             trust_target: PathBuf::from("."),
             show_windows_create_sandbox_hint: false,
+            offer_look_only: false,
             should_quit: false,
             selection: None,
             highlighted: TrustDirectorySelection::Quit,
@@ -322,6 +364,25 @@ mod tests {
         let press = KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE);
         widget.handle_key_event(press);
         assert!(widget.should_quit);
+    }
+
+    #[test]
+    fn look_only_option_selects_without_trust() {
+        let key = |code| KeyEvent::new(code, KeyModifiers::NONE);
+        let mut look = widget(/*error*/ None);
+        look.offer_look_only = true;
+        look.handle_key_event(key(KeyCode::Down));
+        assert_eq!(look.highlighted, TrustDirectorySelection::LookOnly);
+        look.handle_key_event(key(KeyCode::Enter));
+        assert_eq!(look.selection, Some(TrustDirectorySelection::LookOnly));
+        assert!(!look.should_quit);
+
+        let mut by_number = widget(/*error*/ None);
+        by_number.offer_look_only = true;
+        by_number.handle_key_event(key(KeyCode::Char('2')));
+        assert_eq!(by_number.selection, None, "numbers only highlight");
+        by_number.handle_key_event(key(KeyCode::Char('3')));
+        assert!(by_number.should_quit);
     }
 
     #[test]

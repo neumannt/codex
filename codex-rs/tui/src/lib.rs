@@ -1233,7 +1233,7 @@ async fn run_ratatui_app(
     initial_config: Config,
     manually_selected_oss_provider: Option<String>,
     overrides: ConfigOverrides,
-    cli_kv_overrides: Vec<(String, toml::Value)>,
+    mut cli_kv_overrides: Vec<(String, toml::Value)>,
     mut cloud_config_bundle: CloudConfigBundleLoader,
     feedback: codex_feedback::CodexFeedback,
     log_db: Option<log_db::LogDbLayer>,
@@ -1976,6 +1976,8 @@ async fn run_ratatui_app(
         session_selection,
         resume_picker::SessionSelection::AgentsOverview
     ) && (!uses_remote_workspace || remote_cwd_override.is_some())
+        // cortecs fork: `--untrusted` already chose restricted mode; skip the folder prompt.
+        && !cli.untrusted
     {
         let resumed_thread = if matches!(app_server_target, AppServerTarget::LocalDaemon { .. })
             && let resume_picker::SessionSelection::Resume(target) = &session_selection
@@ -2008,7 +2010,14 @@ async fn run_ratatui_app(
         )
         .await?;
         startup_account = None;
-        if consent.directory_trust_persisted && !uses_remote_workspace {
+        // cortecs fork: "Look without trusting" marks the folder untrusted for this session only.
+        let look_only = consent.look_only_trust_target.is_some() && !uses_remote_workspace;
+        if look_only {
+            cli_kv_overrides.push(codex_config::loader::session_untrusted_projects_override(
+                config.cwd.as_path(),
+            ));
+        }
+        if (consent.directory_trust_persisted || look_only) && !uses_remote_workspace {
             let previous_provider = config.model_provider_id.clone();
             config = load_config_or_exit_with_fallback_cwd(
                 cli_kv_overrides.clone(),
@@ -2023,7 +2032,7 @@ async fn run_ratatui_app(
             if uses_embedded_network_policy {
                 embedded_network_policy.bind_config(&mut config);
             }
-            if config.model_provider_id != previous_provider
+            if (config.model_provider_id != previous_provider || look_only)
                 && matches!(app_server_target, AppServerTarget::Embedded)
             {
                 app_server.shutdown().await?;

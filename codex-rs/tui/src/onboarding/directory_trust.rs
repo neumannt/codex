@@ -106,6 +106,10 @@ pub(crate) async fn check_directory_trust(
                 cwd: project.cwd,
                 trust_target: project.trust_target,
                 show_windows_create_sandbox_hint: false,
+                // Only at startup in-process, where the session config can be reloaded.
+                offer_look_only: cancel.is_none()
+                    && matches!(target, AppServerTarget::Embedded)
+                    && project.trust_level.is_none(),
                 should_quit: false,
                 selection: None,
                 highlighted: TrustDirectorySelection::Trust,
@@ -128,6 +132,9 @@ pub(crate) async fn check_directory_trust(
             return Ok(result);
         }
         consent.directory_trust_persisted |= result.directory_trust_persisted;
+        if result.look_only_trust_target.is_some() {
+            consent.look_only_trust_target = result.look_only_trust_target;
+        }
         if matches!(target, AppServerTarget::LocalDaemon { .. })
             && let Some(thread) = resumed_thread
         {
