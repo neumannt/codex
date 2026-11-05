@@ -1,8 +1,8 @@
 ---
 source: tui/src/app/tests.rs
-assertion_line: 5874
+assertion_line: 7259
 expression: rendered
 ---
 
-  >_ OpenAI Codex (v<VERSION>)
+  >_ Codex for cortecs.ai (v<VERSION>)
      /tmp/project

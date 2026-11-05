@@ -1,13 +1,14 @@
 ---
 source: tui/src/status/tests.rs
+assertion_line: 1851
 expression: sanitized
 ---
 /status
 
-  >_ OpenAI Codex (v0.0.0)
+  >_ Codex for cortecs.ai (v0.0.0)
 
-  Visit https://chatgpt.com/settings/usage for up-to-date
-  information on rate limits and credits
+  Visit https://cortecs.ai for up-to-date
+  information on usage, costs and budgets
 
   Model:           gpt-5.1-codex-max (reasoning none, summaries auto)
   Directory:       [[workspace]]
@@ -16,5 +17,3 @@ expression: sanitized
 
   Token usage:     750 total  (500 input + 250 output)
   Context window:  100% left (750 used / 272K)
-  5h limit:        [███████████░░░░░░░░░] 55% left (resets 08:24)
-  Weekly limit:    [██████████████░░░░░░] 70% left (resets 08:54)

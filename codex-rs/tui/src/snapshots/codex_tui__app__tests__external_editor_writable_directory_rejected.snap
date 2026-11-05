@@ -1,5 +1,6 @@
 ---
 source: tui/src/app/tests.rs
+assertion_line: 629
 expression: rendered
 ---
-■ Failed to open editor: editor directory must not be writable
+■ Failed to open editor: editor exited with status exit status: 1

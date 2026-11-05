@@ -1,13 +1,14 @@
 ---
 source: tui/src/status/tests.rs
+assertion_line: 2013
 expression: sanitized
 ---
 /status
 
-  >_ OpenAI Codex (v0.0.0)
+  >_ Codex for cortecs.ai (v0.0.0)
 
-  Visit https://chatgpt.com/settings/usage for up-to-date
-  information on rate limits and credits
+  Visit https://cortecs.ai for up-to-date
+  information on usage, costs and budgets
 
   Model:           gpt-5.1-codex (reasoning none, summaries auto)
   Directory:       [[workspace]]
@@ -16,6 +17,3 @@ expression: sanitized
   Account:         user@example.com (Pro 200)
 
   Context window:  100% left (2.2K used / 272K)
-  5h limit:        [███████████░░░░░░░░░] 55% left (resets 09:25)
-  Weekly limit:    [██████████████░░░░░░] 70% left (resets 09:55)
-  Credits:         Available

@@ -1,5 +1,6 @@
 ---
 source: tui/src/app/tests.rs
+assertion_line: 3602
 expression: panel
 ---
 parent-24                                                      │child-24
@@ -18,4 +19,4 @@ parent-29                                                      │child-29
                                                                │
 › parent draft                                                 │› child draft!
                                                                │
-  GPT-6.1-Sol default · Main [default]                         │  GPT-6.1-Sol default
+  glm-5.3-flash default · Main [default]                       │  glm-5.3-flash default

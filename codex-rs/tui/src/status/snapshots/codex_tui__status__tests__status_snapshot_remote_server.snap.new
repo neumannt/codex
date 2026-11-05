@@ -1,0 +1,22 @@
+---
+source: tui/src/status/tests.rs
+assertion_line: 1782
+expression: sanitized
+---
+/status
+
+  >_ Codex for cortecs.ai (v0.0.0)
+
+  Visit https://cortecs.ai for up-to-date
+  information on usage, costs and budgets
+
+  Server:          unix:///tmp/codex-home/app-server-control/app-server-
+                   control.sock (v0.133.0)
+
+  Model:           gpt-5.1-codex-max (reasoning medium)
+  Directory:       [[workspace]]
+  Permissions:     Custom (workspace with network access, Ask for approval)
+  Agents.md:       <none>
+
+  Token usage:     750 total  (500 input + 250 output)
+  Context window:  100% left (750 used / 272K)
