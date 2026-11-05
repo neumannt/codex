@@ -53,6 +53,7 @@ use std::sync::Arc;
 use std::sync::RwLock;
 
 const CHATGPT_USAGE_URL: &str = "https://chatgpt.com/settings/usage";
+const CORTECS_USAGE_URL: &str = "https://cortecs.ai";
 
 #[derive(Debug, Clone)]
 struct StatusContextWindowData {
@@ -135,6 +136,8 @@ struct StatusHistoryCell {
     model_provider: Option<String>,
     remote_connection: Option<RemoteConnectionStatus>,
     show_chatgpt_usage_link: bool,
+    /// The active provider is cortecs.ai: billing and limits live in the cortecs console.
+    cortecs: bool,
     account: Option<StatusAccountDisplay>,
     thread_name: Option<String>,
     session_id: Option<String>,
@@ -352,6 +355,14 @@ impl StatusHistoryCell {
             &approval,
             workspace_root_suffix.as_deref(),
         );
+        let cortecs = config
+            .model_providers
+            .get(
+                model_provider
+                    .as_deref()
+                    .unwrap_or(&config.model_provider_id),
+            )
+            .is_some_and(codex_model_provider_info::ModelProviderInfo::is_cortecs);
         let show_chatgpt_usage_link = requires_openai_auth;
         let mut account = compose_account_display(account_display);
         let workspace_matches_provider = if remote_connection.is_some() {
@@ -414,6 +425,7 @@ impl StatusHistoryCell {
             model_provider,
             remote_connection: remote_connection.cloned(),
             show_chatgpt_usage_link,
+            cortecs,
             account,
             thread_name,
             session_id,
@@ -458,6 +470,14 @@ impl StatusHistoryCell {
             Span::from(window_fmt).dim(),
             Span::from(")").dim(),
         ])
+    }
+
+    fn usage_url(&self) -> &'static str {
+        if self.cortecs {
+            CORTECS_USAGE_URL
+        } else {
+            CHATGPT_USAGE_URL
+        }
     }
 
     fn rate_limit_lines(
@@ -768,6 +788,7 @@ impl StatusHistoryCell {
                 (None, Some(plan)) => plan.clone(),
                 (None, None) => "ChatGPT".to_string(),
             },
+            StatusAccountDisplay::ApiKey if self.cortecs => "cortecs.ai API key".to_string(),
             StatusAccountDisplay::ApiKey => {
                 "API key configured (run codex login to use ChatGPT)".to_string()
             }
@@ -896,7 +917,9 @@ impl StatusHistoryCell {
             lines.push(formatter.line("Context window", spans));
         }
 
-        lines.extend(self.rate_limit_lines(&rate_limit_state, available_width, &formatter));
+        if !self.cortecs {
+            lines.extend(self.rate_limit_lines(&rate_limit_state, available_width, &formatter));
+        }
         let thread_usage_lines = self
             .thread_usage
             .lines(&formatter, value_width, self.plan_type);
@@ -924,12 +947,16 @@ impl StatusHistoryCell {
                 [
                     Line::from(vec![
                         "Visit ".fg(accent_color()),
-                        CHATGPT_USAGE_URL.fg(accent_color()).underlined(),
+                        self.usage_url().fg(accent_color()).underlined(),
                         " for up-to-date".fg(accent_color()),
                     ]),
-                    "information on rate limits and credits"
-                        .fg(accent_color())
-                        .into(),
+                    if self.cortecs {
+                        "information on usage, costs and budgets"
+                    } else {
+                        "information on rate limits and credits"
+                    }
+                    .fg(accent_color())
+                    .into(),
                 ],
                 RtOptions::new(available_width)
                     .initial_indent(indent.into())
@@ -996,7 +1023,7 @@ impl HistoryCell for Arc<StatusHistoryCell> {
                         line.hyperlinks
                             .push(crate::terminal_hyperlinks::TerminalHyperlink::web(
                                 column..end,
-                                CHATGPT_USAGE_URL.to_string(),
+                                self.usage_url().to_string(),
                             ));
                     }
                     column = end;
