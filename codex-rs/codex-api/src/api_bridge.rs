@@ -125,6 +125,18 @@ fn map_api_error_details(err: ApiError) -> CodexErr {
                     return map_api_error_details(error);
                 }
 
+                // cortecs fork: a rejected API key will not fix itself, so fail without retrying.
+                if status == http::StatusCode::UNAUTHORIZED
+                    && url.as_deref().is_some_and(is_cortecs_url)
+                {
+                    return CodexErr::Fatal(
+                        "cortecs.ai rejected the API key (401 Unauthorized). Check the key in the \
+                         cortecs.ai console (https://cortecs.ai), then run `cortecs-codex login` \
+                         or set CORTECS_API_KEY."
+                            .to_string(),
+                    );
+                }
+
                 if status == http::StatusCode::SERVICE_UNAVAILABLE
                     && let Some(error) = provider_error
                 {
@@ -371,4 +383,12 @@ struct UsageErrorBody {
     plan_type: Option<PlanType>,
     resets_at: Option<i64>,
     limit_window_minutes: Option<Value>,
+}
+
+/// cortecs fork: whether a request URL points at cortecs.ai.
+fn is_cortecs_url(url: &str) -> bool {
+    url::Url::parse(url)
+        .ok()
+        .and_then(|url| url.host_str().map(str::to_ascii_lowercase))
+        .is_some_and(|host| host == "cortecs.ai" || host.ends_with(".cortecs.ai"))
 }

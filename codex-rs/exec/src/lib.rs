@@ -666,6 +666,28 @@ pub async fn run_main(cli: Cli, arg0_paths: Arg0DispatchPaths) -> anyhow::Result
 
     set_default_client_residency_requirement(config.enforce_residency.value());
 
+    // cortecs fork: fail fast with a clear hint instead of retrying requests that return 401.
+    let provider = &config.model_provider;
+    if provider.is_cortecs()
+        && provider.requires_openai_auth
+        && provider.env_key.is_none()
+        && provider.experimental_bearer_token.is_none()
+        && provider.auth.is_none()
+        && matches!(
+            config
+                .auth_config()
+                .load_auth(/*enable_codex_api_key_env*/ true)
+                .await,
+            Ok(None)
+        )
+    {
+        eprintln!(
+            "No cortecs.ai API key found. Run `cortecs-codex login`, or set CORTECS_API_KEY. \
+             Keys are created in the cortecs.ai console: https://cortecs.ai"
+        );
+        std::process::exit(1);
+    }
+
     if !is_workload_identity_selected()
         && let Err(err) = enforce_login_restrictions(&config.auth_config()).await
     {
