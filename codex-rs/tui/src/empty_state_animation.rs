@@ -29,6 +29,9 @@ use renderer::MAX_COLUMNS;
 use renderer::MAX_ROWS;
 use renderer::Renderer;
 
+/// cortecs fork: the blossom is OpenAI's mark, so it is not drawn.
+pub(crate) const SHOW_BRAND_LOGO: bool = false;
+
 pub(crate) const FRAME_INTERVAL: Duration = Duration::from_millis(/*millis*/ 50);
 // The preview's first visible pose (10.8s / 7.2s), also the start of an idle-screen replay.
 const SETTLED_BLOSSOM: f64 = 0.5;
@@ -202,7 +205,8 @@ impl EmptyStateAnimation {
         const MIN_STAGE_ROWS: u16 = 14;
         let width = screen.width.saturating_sub(/*rhs*/ 4).min(MAX_COLUMNS);
         let height = width * STAGE_ROWS / MAX_COLUMNS;
-        if motion == MotionMode::Reduced
+        if !SHOW_BRAND_LOGO
+            || motion == MotionMode::Reduced
             || composer != Some(ComposerState::Empty)
             || height < MIN_STAGE_ROWS
             || height > screen.height

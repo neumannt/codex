@@ -96,7 +96,8 @@ impl WidgetRef for &WelcomeWidget {
         Clear.render(area, buf);
         let layout_area = self.layout_area.get().unwrap_or(area);
         // Skip the animation entirely when the viewport is too small so we don't clip frames.
-        let show_animation = self.animations_enabled
+        let show_animation = crate::empty_state_animation::SHOW_BRAND_LOGO
+            && self.animations_enabled
             && self.presentation.get() != Presentation::Hidden
             && layout_area.height >= MIN_ANIMATION_HEIGHT
             && layout_area.width >= MIN_ANIMATION_WIDTH;
@@ -126,8 +127,8 @@ impl WidgetRef for &WelcomeWidget {
         lines.push(Line::from(vec![
             "  ".into(),
             "Welcome to ".into(),
-            "Codex".bold(),
-            ", OpenAI's command-line coding agent".into(),
+            "Codex for cortecs.ai".bold(),
+            ", an open-source terminal coding agent".into(),
         ]));
 
         Paragraph::new(lines)

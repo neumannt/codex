@@ -31,7 +31,8 @@ lazy_static! {
         .lines()
         .map(str::trim)
         .filter(|line| !line.is_empty() && !line.starts_with('#'))
-        .chain(app_tooltip())
+        // cortecs fork: the desktop app tips point at OpenAI's ChatGPT app.
+        .chain(app_tooltip().filter(|_| false))
         .collect();
     static ref ALL_TOOLTIPS: Vec<&'static str> = {
         let mut tips = Vec::new();
