@@ -30,8 +30,6 @@ struct OpenAiModelList {
 struct OpenAiModel {
     id: String,
     #[serde(default)]
-    description: Option<String>,
-    #[serde(default)]
     context_size: Option<i64>,
     #[serde(default)]
     tags: Option<Vec<String>>,
@@ -198,13 +196,14 @@ fn describe(model: &OpenAiModel) -> Option<String> {
     if let Some(context) = model.context_size.filter(|size| *size > 0) {
         parts.push(format!("{} ctx", format_tokens(context)));
     }
-    if let Some(description) = model
-        .description
-        .as_deref()
-        .map(str::trim)
-        .filter(|description| !description.is_empty())
-    {
-        parts.push(description.to_string());
+    if model.has_feature("reasoning") {
+        parts.push("reasoning".to_string());
+    }
+    if model.accepts_images() {
+        parts.push("vision".to_string());
+    }
+    if !model.has_feature("tools") {
+        parts.push("no tool calling".to_string());
     }
     (!parts.is_empty()).then(|| parts.join(" · "))
 }

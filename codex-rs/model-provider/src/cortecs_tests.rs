@@ -35,7 +35,7 @@ fn maps_cortecs_model_list() {
     );
     assert_eq!(
         glm.description.as_deref(),
-        Some("€0.09/€0.314 per 1M in/out · 1M ctx · Fast GLM.")
+        Some("€0.09/€0.314 per 1M in/out · 1M ctx · reasoning · vision")
     );
 
     let coder = &models[1];
