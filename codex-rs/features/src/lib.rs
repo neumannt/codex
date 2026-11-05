@@ -1126,7 +1126,9 @@ pub const FEATURES: &[FeatureSpec] = &[
         id: Feature::DaemonAutoStart,
         key: "daemon_auto_start",
         stage: Stage::Stable,
-        default_enabled: true,
+        // cortecs fork: the daemon requires an official packaged install (and self-updates
+        // from chatgpt.com); run the app server in-process instead.
+        default_enabled: false,
     },
     FeatureSpec {
         id: Feature::TuiWorkspace,
