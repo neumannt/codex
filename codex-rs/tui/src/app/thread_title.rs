@@ -68,6 +68,11 @@ impl App {
         destination: ThreadTitleDestination,
         prompt: String,
     ) {
+        // cortecs fork: no automatic model-generated thread titles. They cost an extra model
+        // request per thread and rarely add much; `/rename` suggestions still work.
+        if destination == ThreadTitleDestination::Automatic {
+            return;
+        }
         if app_server.thread_params_mode().settings_owner() == ThreadSettingsOwner::Server {
             if let ThreadTitleDestination::RenameSuggestion { request_id } = destination {
                 self.chat_widget
