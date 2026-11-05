@@ -926,6 +926,11 @@ impl ModelClient {
         &self,
         responses_metadata: &CodexResponsesMetadata,
     ) -> ApiHeaderMap {
+        // cortecs fork: Codex turn metadata (workspace paths, git state, installation id) is
+        // only meaningful to OpenAI's backend; do not send it to cortecs.ai.
+        if self.state.provider.info().is_cortecs() {
+            return ApiHeaderMap::new();
+        }
         let mut extra_headers = responses_metadata.compatibility_headers();
         if matches!(
             self.state.session_source,
@@ -1159,7 +1164,7 @@ impl ModelClient {
                 .prompt_cache_ttl
                 .map(|ttl| codex_api::PromptCacheOptions { ttl }),
             text,
-            client_metadata: Some(client_metadata),
+            client_metadata: (!self.state.provider.info().is_cortecs()).then_some(client_metadata),
             access_programs: None,
         };
         Ok(request)
