@@ -24,7 +24,10 @@ impl TestCodexExecBuilder {
         let mut cmd = self.cmd();
         let base = format!("{}/v1", server.uri());
         cmd.arg("-c")
-            .arg(format!("openai_base_url={}", toml_string_literal(&base)));
+            .arg(format!("openai_base_url={}", toml_string_literal(&base)))
+            // cortecs fork: the default provider is cortecs; these tests mock OpenAI.
+            .arg("-c")
+            .arg("model_provider=\"openai\"");
         cmd
     }
 
