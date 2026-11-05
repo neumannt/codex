@@ -6,6 +6,7 @@ mod catalog_factory;
 mod chatgpt_base_url;
 mod client_auth;
 mod combined_auth;
+mod cortecs;
 mod gcp;
 mod models_endpoint;
 mod models_identity;

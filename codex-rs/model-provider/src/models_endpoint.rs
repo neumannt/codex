@@ -189,6 +189,11 @@ impl OpenAiModelsEndpoint {
             .map_err(map_api_error)?,
             None => ModelsClient::<ReqwestTransport>::request_url(&api_provider, client_version),
         };
+        let request_url = if self.provider_info.is_cortecs() {
+            crate::cortecs::standard_models_url(&request_url)
+        } else {
+            request_url
+        };
         let auth_telemetry = auth_header_telemetry(api_auth.as_ref())
             .map_err(|error| map_api_error(error.into()))?;
         let agent_identity_telemetry = if let Some(CodexAuth::AgentIdentity(auth)) = auth.as_ref() {
@@ -211,29 +216,49 @@ impl OpenAiModelsEndpoint {
                 .await?;
             let client = ModelsClient::new(transport, api_provider, api_auth)
                 .with_telemetry(Some(request_telemetry));
-            client
-                .list_models(
-                    request_url,
-                    HeaderMap::new(),
-                    /*response_body_limit_bytes*/ None,
-                )
-                .await
-                .map_err(|mut error| {
-                    if self.provider_info.model_catalog_url.is_some()
-                        && let codex_api::ApiError::Transport(TransportError::Http {
-                            url,
-                            headers,
-                            body,
-                            ..
-                        }) = &mut error
-                    {
-                        // Provider diagnostics may echo URL credentials or other secrets.
-                        *url = None;
-                        *headers = None;
-                        *body = None;
-                    }
-                    map_api_error(error)
-                })
+            let listed = if self.provider_info.is_cortecs() {
+                // cortecs serves the standard OpenAI model list rather than a Codex catalog.
+                client
+                    .list_models_raw(
+                        request_url,
+                        HeaderMap::new(),
+                        /*response_body_limit_bytes*/ None,
+                    )
+                    .await
+                    .and_then(|(body, etag)| {
+                        crate::cortecs::models_from_openai_list(&body)
+                            .map(|models| (models, etag))
+                            .map_err(|error| {
+                                codex_api::ApiError::Stream(format!(
+                                    "failed to decode cortecs models response: {error}"
+                                ))
+                            })
+                    })
+            } else {
+                client
+                    .list_models(
+                        request_url,
+                        HeaderMap::new(),
+                        /*response_body_limit_bytes*/ None,
+                    )
+                    .await
+            };
+            listed.map_err(|mut error| {
+                if self.provider_info.model_catalog_url.is_some()
+                    && let codex_api::ApiError::Transport(TransportError::Http {
+                        url,
+                        headers,
+                        body,
+                        ..
+                    }) = &mut error
+                {
+                    // Provider diagnostics may echo URL credentials or other secrets.
+                    *url = None;
+                    *headers = None;
+                    *body = None;
+                }
+                map_api_error(error)
+            })
         }?;
         if self.provider_info.model_catalog_url.is_some() {
             let mut slugs = HashSet::new();
@@ -285,6 +310,7 @@ impl ModelsEndpointClient for OpenAiModelsEndpoint {
 
     fn supports_api_key_models(&self) -> bool {
         self.provider_info.model_catalog_url.is_some()
+            || self.provider_info.is_cortecs()
             || (self.provider_info.is_openai() && self.provider_info.base_url.is_none())
     }
 

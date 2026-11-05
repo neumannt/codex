@@ -704,9 +704,11 @@ impl ModelProvider for ConfiguredModelProvider {
         );
         let auth_manager = self.auth_manager.clone();
         let manager = OpenAiModelsManager::with_settings(settings, endpoint, auth_manager);
-        match &self.info.model_catalog_url {
-            Some(_) => Arc::new(manager.with_provider_catalog()),
-            None => Arc::new(manager),
+        // cortecs serves its own catalog; never mix in OpenAI's bundled models.
+        if self.info.model_catalog_url.is_some() || self.info.is_cortecs() {
+            Arc::new(manager.with_provider_catalog())
+        } else {
+            Arc::new(manager)
         }
     }
 
