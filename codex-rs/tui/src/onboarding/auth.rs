@@ -282,6 +282,8 @@ pub(crate) struct AuthModeWidget {
     pub(super) activation_key_guard: Option<ActivationKeyGuard>,
     pub error: Arc<RwLock<Option<String>>>,
     pub sign_in_state: Arc<RwLock<SignInState>>,
+    /// The provider is cortecs.ai: only API-key entry is offered.
+    pub cortecs_api_key_only: bool,
     pub login_status: LoginStatus,
     pub app_server_target: crate::AppServerTarget,
     pub app_server_request_handle: AppServerRequestHandle,
@@ -776,12 +778,19 @@ impl AuthModeWidget {
     }
 
     fn render_api_key_configured(&self, area: Rect, buf: &mut Buffer) {
-        let lines = vec![
-            "✓ API key configured".fg(Color::Green).into(),
-            "".into(),
-            "  Codex will use usage-based billing with your API key.".into(),
-        ];
-
+        let lines = if self.cortecs_api_key_only {
+            vec![
+                "✓ cortecs.ai API key saved".fg(Color::Green).into(),
+                "".into(),
+                "  Usage is billed to your cortecs.ai project.".into(),
+            ]
+        } else {
+            vec![
+                "✓ API key configured".fg(Color::Green).into(),
+                "".into(),
+                "  Codex will use usage-based billing with your API key.".into(),
+            ]
+        };
         Paragraph::new(lines)
             .wrap(Wrap { trim: false })
             .render(area, buf);
@@ -795,17 +804,40 @@ impl AuthModeWidget {
         ])
         .areas(area);
 
-        let mut intro_lines: Vec<Line> = vec![
-            Line::from(vec![
-                "> ".into(),
-                "Use your own OpenAI API key for usage-based billing".bold(),
-            ]),
-            "".into(),
-            "  Paste or type your API key below.".into(),
-            "".into(),
-        ];
+        let mut intro_lines: Vec<Line> = if self.cortecs_api_key_only {
+            vec![
+                Line::from(vec!["> ".into(), "Connect your cortecs.ai API key".bold()]),
+                "".into(),
+                Line::from(vec![
+                    "  Create a key in the cortecs.ai console: ".into(),
+                    "https://cortecs.ai".cyan().underlined(),
+                ]),
+                "  Paste it below. It is stored locally in your config directory.".into(),
+                "  (Alternatively, set the CORTECS_API_KEY environment variable.)"
+                    .dim()
+                    .into(),
+                "".into(),
+            ]
+        } else {
+            vec![
+                Line::from(vec![
+                    "> ".into(),
+                    "Use your own OpenAI API key for usage-based billing".bold(),
+                ]),
+                "".into(),
+                "  Paste or type your API key below.".into(),
+                "".into(),
+            ]
+        };
         if state.prepopulated_from_env {
-            intro_lines.push("  Detected OPENAI_API_KEY environment variable.".into());
+            intro_lines.push(
+                if self.cortecs_api_key_only {
+                    "  Detected CORTECS_API_KEY environment variable."
+                } else {
+                    "  Detected OPENAI_API_KEY environment variable."
+                }
+                .into(),
+            );
             intro_lines.push(
                 "  Paste a different key if you prefer to use another account."
                     .dim()
@@ -833,18 +865,18 @@ impl AuthModeWidget {
             )
             .render(input_area, buf);
 
-        let mut footer_lines: Vec<Line> = vec![
-            Line::from(vec![
-                "  Press ".dim(),
-                self.confirm_binding().into(),
-                " to save".dim(),
-            ]),
-            Line::from(vec![
+        let mut footer_lines: Vec<Line> = vec![Line::from(vec![
+            "  Press ".dim(),
+            self.confirm_binding().into(),
+            " to save".dim(),
+        ])];
+        if !self.cortecs_api_key_only {
+            footer_lines.push(Line::from(vec![
                 "  Press ".dim(),
                 self.cancel_binding().into(),
                 " to go back".dim(),
-            ]),
-        ];
+            ]));
+        }
         if let Some(error) = self.error_message() {
             footer_lines.push("".into());
             footer_lines.push(error.red().into());
@@ -862,9 +894,11 @@ impl AuthModeWidget {
             let mut guard = self.sign_in_state.write().unwrap();
             if let SignInState::ApiKeyEntry(state) = &mut *guard {
                 if keys::CANCEL.is_pressed(*key_event) {
-                    *guard = SignInState::PickMode;
-                    self.set_error(/*message*/ None);
-                    should_request_frame = true;
+                    if !self.cortecs_api_key_only {
+                        *guard = SignInState::PickMode;
+                        self.set_error(/*message*/ None);
+                        should_request_frame = true;
+                    }
                 } else if key_event.kind == KeyEventKind::Press
                     && keys::CONFIRM.is_pressed(*key_event)
                 {
@@ -948,7 +982,11 @@ impl AuthModeWidget {
             return;
         }
         self.set_error(/*message*/ None);
-        let prefill_from_env = read_openai_api_key_from_env();
+        let prefill_from_env = if self.cortecs_api_key_only {
+            codex_login::read_cortecs_api_key_from_env()
+        } else {
+            read_openai_api_key_from_env()
+        };
         let mut guard = self.sign_in_state.write().unwrap();
         match &mut *guard {
             SignInState::ApiKeyEntry(state) => {
@@ -1384,6 +1422,7 @@ mod tests {
             auth_config,
             bedrock_setup_enabled: false,
             gcp_setup_enabled: false,
+            cortecs_api_key_only: false,
             animations_enabled: true,
             animations_suppressed: std::cell::Cell::new(false),
         };

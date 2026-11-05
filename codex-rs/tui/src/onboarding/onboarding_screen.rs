@@ -175,13 +175,22 @@ impl OnboardingScreen {
                 } else {
                     SignInOption::OtherMethods
                 };
+            // cortecs.ai only supports API keys, so skip the sign-in method picker.
+            let cortecs_api_key_only = config.model_provider.is_cortecs()
+                && auth_config.is_login_method_allowed(ForcedLoginMethod::Api);
+            let initial_sign_in_state = if cortecs_api_key_only {
+                SignInState::ApiKeyEntry(crate::onboarding::auth::ApiKeyInputState::default())
+            } else {
+                SignInState::PickMode
+            };
             if let Some(app_server_request_handle) = app_server_request_handle {
                 steps.push(Step::Auth(AuthModeWidget {
                     request_frame: tui.frame_requester(),
                     highlighted_mode,
                     activation_key_guard: None,
                     error: Arc::new(RwLock::new(None)),
-                    sign_in_state: Arc::new(RwLock::new(SignInState::PickMode)),
+                    sign_in_state: Arc::new(RwLock::new(initial_sign_in_state)),
+                    cortecs_api_key_only,
                     login_status,
                     app_server_target,
                     app_server_request_handle,
