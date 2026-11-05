@@ -1,3 +1,7 @@
+> **This is "Codex for cortecs.ai"**, a fork of OpenAI Codex CLI set up as a frontend for
+> [cortecs.ai](https://cortecs.ai). See [cortecs/README.md](./cortecs/README.md) for installation and
+> differences from upstream. The rest of this file is the upstream README.
+
 <p align="center"><strong>Codex CLI</strong> is a coding agent from OpenAI that runs locally on your computer.
 <p align="center">
   <img src="https://github.com/openai/codex/blob/main/.github/codex-cli-splash.png" alt="Codex CLI splash" width="80%" />
