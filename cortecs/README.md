@@ -59,14 +59,16 @@ models without tool calling, can still be selected by name.
 | Privacy | No Statsig metrics, no analytics events, no announcement/update checks against GitHub/npm, no curated plugin sync from GitHub/chatgpt.com, `/feedback` uploads disabled. Codex turn metadata (workspace paths, git state, installation id) is not sent to cortecs. |
 | Paths & name | Command `cortecs-codex`, config in `~/.cortecs-codex` (override with `CODEX_HOME`), so it can coexist with a stock Codex install. Project-level `.codex/` and `AGENTS.md` files work as usual. |
 | Daemon | The background app-server daemon is off by default; the app server runs in-process. |
+| Costs | `/status` shows a `Cost` line: the sum of the per-request cost reported by cortecs since `cortecs-codex` started (all threads, including sub-agents and compaction). |
+| Thread titles | No automatic model-generated thread titles (they cost an extra request per thread). `/rename` still works. |
 
 You can turn things back on in `config.toml`, for example `[features] plugins = true` or
 `[feedback] enabled = true`. Feedback uploads go to OpenAI's Sentry.
 
 ## Tips
 
-- `/status` shows the model, provider, and token usage. Costs and budgets are in the
-  cortecs console.
+- `/status` shows the model, provider, token usage, and the cost reported by cortecs so far.
+  Budgets and detailed usage are in the cortecs console.
 - cortecs caches prompts automatically where the provider supports it. Long sessions get
   cache hits on the shared prefix, which lowers cost.
 - Cheaper models are faster but weaker at long agentic tasks. If a model struggles,
@@ -84,5 +86,9 @@ git checkout cortecs && git rebase main                       # or: git merge ma
 ```
 
 Most fork-specific code is in files that upstream does not have:
-`codex-rs/model-provider/src/cortecs.rs` and `cortecs/`. The rest is small, commented
-hooks (search the code for `cortecs`).
+`codex-rs/model-provider/src/cortecs.rs`, `codex-rs/protocol/src/provider_cost.rs` and
+`cortecs/`. The rest is small, commented hooks (search the code for `cortecs`).
+
+Tests that check upstream OpenAI defaults are marked
+`#[ignore = "cortecs fork: ..."]`. If an upstream merge adds more tests like that, mark
+them the same way (`grep -rn "cortecs fork:"` lists them all).
