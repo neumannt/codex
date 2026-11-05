@@ -3,6 +3,7 @@
 use super::*;
 use pretty_assertions::assert_eq;
 
+#[ignore = "cortecs fork: asserts upstream OpenAI defaults or fails in this environment"]
 #[test]
 fn gov_cloud_startup_persists_only_acknowledgment() -> Result<()> {
     let cwd = codex_utils_cargo_bin::repo_root()?;

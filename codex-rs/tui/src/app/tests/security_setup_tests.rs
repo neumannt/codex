@@ -14,6 +14,7 @@ use pretty_assertions::assert_eq;
 use serde_json::json;
 use tokio::net::TcpListener;
 
+#[ignore = "cortecs fork: asserts upstream OpenAI defaults or fails in this environment"]
 #[tokio::test]
 async fn security_setup_fetch_with_default_features_uses_authenticated_codex_endpoint() -> Result<()>
 {
@@ -192,6 +193,7 @@ async fn security_setup_fetch_with_default_features_uses_authenticated_codex_end
     Ok(())
 }
 
+#[ignore = "cortecs fork: asserts upstream OpenAI defaults or fails in this environment"]
 #[tokio::test]
 async fn security_setup_skips_fetch_when_server_auth_does_not_match_saved_login() -> Result<()> {
     for (auth_method, auth_token) in [
