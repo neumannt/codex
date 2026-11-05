@@ -313,6 +313,7 @@ pub async fn run_main(cli: Cli, arg0_paths: Arg0DispatchPaths) -> anyhow::Result
         auto_review: _,
         dangerously_bypass_approvals_and_sandbox,
         bypass_hook_trust,
+        untrusted,
         cwd,
         mut add_dir,
         worktree,
@@ -356,7 +357,7 @@ pub async fn run_main(cli: Cli, arg0_paths: Arg0DispatchPaths) -> anyhow::Result
     };
 
     // Parse `-c` overrides from the CLI.
-    let cli_kv_overrides = match config_overrides.parse_overrides() {
+    let mut cli_kv_overrides = match config_overrides.parse_overrides() {
         Ok(v) => v,
         #[allow(clippy::print_stderr)]
         Err(e) => {
@@ -372,6 +373,12 @@ pub async fn run_main(cli: Cli, arg0_paths: Arg0DispatchPaths) -> anyhow::Result
         }
         None => AbsolutePathBuf::current_dir()?,
     };
+    // cortecs fork: `--untrusted` ignores project instructions, skills, config and hooks.
+    if untrusted {
+        cli_kv_overrides.push(codex_config::loader::session_untrusted_projects_override(
+            config_cwd.as_path(),
+        ));
+    }
 
     // we load config.toml here to determine project state.
     #[allow(clippy::print_stderr)]

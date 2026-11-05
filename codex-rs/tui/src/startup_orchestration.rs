@@ -85,6 +85,16 @@ pub(super) async fn run_main_inner(
             std::process::exit(1);
         }
     };
+    // cortecs fork: `--untrusted` opens the folder restricted for this run without saving trust.
+    if cli.untrusted {
+        let cwd = match cli.cwd.as_deref() {
+            Some(cwd) => std::path::absolute(cwd)?,
+            None => std::env::current_dir()?,
+        };
+        cli_kv_overrides.push(codex_config::loader::session_untrusted_projects_override(
+            &cwd,
+        ));
+    }
     if explicit_remote_endpoint.is_some()
         && cli_kv_overrides.iter().any(|(key, value)| {
             key == "sandbox_workspace_write.writable_roots"

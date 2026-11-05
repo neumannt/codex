@@ -120,8 +120,37 @@ async fn resolve_skill_roots_with_home_dir<'a>(
         )
         .await,
     );
+    // cortecs fork: project skills are project-provided model context, just like AGENTS.md,
+    // so an explicitly untrusted folder must not contribute any.
+    if project_explicitly_untrusted(config_layer_stack, cwd) {
+        roots.retain(|root| root.scope != SkillScope::Repo);
+    }
     dedupe_skill_roots_by_path(&mut roots);
     roots
+}
+
+/// Whether the nearest `[projects]` entry containing `cwd` is marked `trust_level = "untrusted"`
+/// in the effective config (including session-only overrides).
+fn project_explicitly_untrusted(
+    config_layer_stack: &ConfigLayerStack,
+    cwd: &AbsolutePathBuf,
+) -> bool {
+    let effective = config_layer_stack.effective_config();
+    let Some(projects) = effective.get("projects").and_then(TomlValue::as_table) else {
+        return false;
+    };
+    let cwd_key = std::path::PathBuf::from(codex_config::loader::project_trust_key(cwd.as_path()));
+    projects
+        .iter()
+        .filter_map(|(key, project)| {
+            let key_path = std::path::Path::new(key);
+            (cwd.as_path().starts_with(key_path) || cwd_key.starts_with(key_path))
+                .then(|| (key_path.components().count(), project))
+        })
+        .max_by_key(|(depth, _)| *depth)
+        .and_then(|(_, project)| project.get("trust_level"))
+        .and_then(TomlValue::as_str)
+        == Some("untrusted")
 }
 
 fn roots_from_layer_stack<'a>(

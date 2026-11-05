@@ -1580,6 +1580,24 @@ fn credential_broker_trusted_config(
     trusted_config
 }
 
+/// cortecs fork: session-only `-c`-style override (`projects = {...}`) that marks `cwd` and all
+/// of its ancestors as untrusted, so every trust lookup for `cwd` (the folder itself, its project
+/// root and its repository root) resolves to untrusted without writing any config file.
+pub fn session_untrusted_projects_override(cwd: &Path) -> (String, TomlValue) {
+    let mut projects = toml::map::Map::new();
+    for dir in cwd.ancestors() {
+        let mut project = toml::map::Map::new();
+        project.insert(
+            "trust_level".to_string(),
+            TomlValue::String("untrusted".to_string()),
+        );
+        for key in normalized_project_trust_keys(dir) {
+            projects.insert(key, TomlValue::Table(project.clone()));
+        }
+    }
+    ("projects".to_string(), TomlValue::Table(projects))
+}
+
 /// Canonicalize the path and convert it to a string to be used as a key in the
 /// projects trust map. On Windows, strips UNC, when possible, to try to ensure
 /// that different paths that point to the same location have the same key.

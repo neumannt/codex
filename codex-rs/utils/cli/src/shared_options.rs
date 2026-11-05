@@ -63,6 +63,11 @@ pub struct SharedCliOptions {
     #[arg(long = "dangerously-bypass-hook-trust", default_value_t = false)]
     pub bypass_hook_trust: bool,
 
+    /// Treat the working folder as untrusted for this run without saving anything:
+    /// AGENTS.md, project skills, project config, hooks and exec policies are ignored.
+    #[arg(long = "untrusted", default_value_t = false)]
+    pub untrusted: bool,
+
     /// Tell the agent to use the specified directory as its working root.
     #[clap(long = "cd", short = 'C', value_name = "DIR")]
     pub cwd: Option<PathBuf>,
@@ -106,6 +111,7 @@ impl SharedCliOptions {
             auto_review,
             dangerously_bypass_approvals_and_sandbox,
             bypass_hook_trust,
+            untrusted,
             cwd,
             worktree,
             add_dir,
@@ -120,6 +126,7 @@ impl SharedCliOptions {
             auto_review: root_auto_review,
             dangerously_bypass_approvals_and_sandbox: root_dangerously_bypass_approvals_and_sandbox,
             bypass_hook_trust: root_bypass_hook_trust,
+            untrusted: root_untrusted,
             cwd: root_cwd,
             worktree: root_worktree,
             add_dir: root_add_dir,
@@ -146,6 +153,7 @@ impl SharedCliOptions {
         if !*bypass_hook_trust {
             *bypass_hook_trust = *root_bypass_hook_trust;
         }
+        *untrusted |= *root_untrusted;
         if cwd.is_none() {
             cwd.clone_from(root_cwd);
         }
@@ -176,6 +184,7 @@ impl SharedCliOptions {
             auto_review,
             dangerously_bypass_approvals_and_sandbox,
             bypass_hook_trust,
+            untrusted,
             cwd,
             worktree,
             add_dir,
@@ -202,6 +211,7 @@ impl SharedCliOptions {
         if bypass_hook_trust {
             self.bypass_hook_trust = true;
         }
+        self.untrusted |= untrusted;
         if let Some(cwd) = cwd {
             self.cwd = Some(cwd);
         }
