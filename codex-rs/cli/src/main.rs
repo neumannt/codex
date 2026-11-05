@@ -13,6 +13,7 @@ use codex_chatgpt::apply_command::run_apply_command;
 use codex_cli::cloud_config;
 use codex_cli::read_access_token_from_stdin;
 use codex_cli::read_api_key_from_stdin;
+use codex_cli::read_cortecs_api_key;
 use codex_cli::run_login_status;
 use codex_cli::run_login_with_access_token;
 use codex_cli::run_login_with_api_key;
@@ -520,7 +521,7 @@ struct LoginCommand {
 
     #[arg(
         long = "with-api-key",
-        help = "Read the API key from stdin (e.g. `printenv OPENAI_API_KEY | codex login --with-api-key`)"
+        help = "Read the API key from stdin (e.g. `printenv CORTECS_API_KEY | cortecs-codex login --with-api-key`)"
     )]
     with_api_key: bool,
 
@@ -542,6 +543,10 @@ struct LoginCommand {
 
     #[arg(long = "device-auth")]
     use_device_code: bool,
+
+    /// Sign in with ChatGPT in a browser (only useful with the `openai` provider).
+    #[arg(long = "chatgpt", hide = true)]
+    chatgpt: bool,
 
     /// EXPERIMENTAL: Use custom OAuth issuer base URL (advanced)
     /// Override the OAuth issuer base URL (advanced)
@@ -1667,7 +1672,7 @@ async fn dispatch_cli(
                         .await;
                     } else if login_cli.api_key.is_some() {
                         eprintln!(
-                            "The --api-key flag is no longer supported. Pipe the key instead, e.g. `printenv OPENAI_API_KEY | codex login --with-api-key`."
+                            "The --api-key flag is no longer supported. Pipe the key instead, e.g. `printenv CORTECS_API_KEY | cortecs-codex login --with-api-key`."
                         );
                         std::process::exit(1);
                     } else if login_cli.with_api_key {
@@ -1676,8 +1681,12 @@ async fn dispatch_cli(
                     } else if login_cli.with_access_token {
                         let access_token = read_access_token_from_stdin();
                         run_login_with_access_token(login_cli.config_overrides, access_token).await;
-                    } else {
+                    } else if login_cli.chatgpt {
                         run_login_with_browser(login_cli.config_overrides).await;
+                    } else {
+                        // cortecs fork: the default login asks for a cortecs.ai API key.
+                        let api_key = read_cortecs_api_key();
+                        run_login_with_api_key(login_cli.config_overrides, api_key).await;
                     }
                 }
             }

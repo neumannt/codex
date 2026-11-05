@@ -277,7 +277,10 @@ pub async fn run_login_with_api_key(
         config.auth_keyring_backend_kind(),
     ) {
         Ok(_) => {
-            eprintln!("API key saved. {API_KEY_AUTHENTICATION_NOTICE}");
+            eprintln!(
+                "API key saved to {}. {API_KEY_AUTHENTICATION_NOTICE}",
+                config.codex_home.display()
+            );
             std::process::exit(0);
         }
         Err(e) => {
@@ -329,10 +332,64 @@ pub async fn run_login_with_access_token(
 
 pub fn read_api_key_from_stdin() -> String {
     read_stdin_secret(
-        "--with-api-key expects the API key on stdin. Try piping it, e.g. `printenv OPENAI_API_KEY | codex login --with-api-key`.",
+        "--with-api-key expects the API key on stdin. Try piping it, e.g. `printenv CORTECS_API_KEY | cortecs-codex login --with-api-key`.",
         "Reading API key from stdin...",
         "No API key provided via stdin.",
     )
+}
+
+/// Read a cortecs.ai API key: prompt (without echo) on a terminal, otherwise read stdin.
+pub fn read_cortecs_api_key() -> String {
+    if !std::io::stdin().is_terminal() {
+        return read_api_key_from_stdin();
+    }
+    eprintln!("Create an API key in the cortecs.ai console (https://cortecs.ai).");
+    eprint!("Paste your cortecs.ai API key (input hidden): ");
+    let line = match read_line_without_echo() {
+        Ok(line) => line,
+        Err(err) => {
+            eprintln!("Failed to read API key: {err}");
+            std::process::exit(1);
+        }
+    };
+    let api_key = line.trim().to_string();
+    if api_key.is_empty() {
+        eprintln!("No API key provided.");
+        std::process::exit(1);
+    }
+    api_key
+}
+
+#[cfg(unix)]
+fn read_line_without_echo() -> std::io::Result<String> {
+    use std::os::fd::AsRawFd;
+
+    let fd = std::io::stdin().as_raw_fd();
+    // SAFETY: `termios` is plain data and `tcgetattr` fully initializes it on success.
+    let mut termios: libc::termios = unsafe { std::mem::zeroed() };
+    // SAFETY: `fd` is stdin and `termios` is a valid, writable struct.
+    let has_termios = unsafe { libc::tcgetattr(fd, &mut termios) } == 0;
+    let original = termios;
+    if has_termios {
+        termios.c_lflag &= !libc::ECHO;
+        // SAFETY: restores/updates terminal attributes of stdin with a valid struct.
+        unsafe { libc::tcsetattr(fd, libc::TCSANOW, &termios) };
+    }
+    let mut line = String::new();
+    let result = std::io::stdin().read_line(&mut line);
+    if has_termios {
+        // SAFETY: restores the attributes captured above.
+        unsafe { libc::tcsetattr(fd, libc::TCSANOW, &original) };
+    }
+    eprintln!();
+    result.map(|_| line)
+}
+
+#[cfg(not(unix))]
+fn read_line_without_echo() -> std::io::Result<String> {
+    let mut line = String::new();
+    std::io::stdin().read_line(&mut line)?;
+    Ok(line)
 }
 
 pub fn read_access_token_from_stdin() -> String {
