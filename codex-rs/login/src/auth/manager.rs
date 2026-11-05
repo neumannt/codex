@@ -1035,6 +1035,11 @@ fn persist_agent_identity_record(
 
 pub const OPENAI_API_KEY_ENV_VAR: &str = "OPENAI_API_KEY";
 pub const CODEX_API_KEY_ENV_VAR: &str = "CODEX_API_KEY";
+pub const CORTECS_API_KEY_ENV_VAR: &str = "CORTECS_API_KEY";
+
+pub fn read_cortecs_api_key_from_env() -> Option<String> {
+    read_non_empty_env_var(CORTECS_API_KEY_ENV_VAR)
+}
 pub const CODEX_ACCESS_TOKEN_ENV_VAR: &str = "CODEX_ACCESS_TOKEN";
 
 pub fn read_openai_api_key_from_env() -> Option<String> {
@@ -1607,6 +1612,14 @@ async fn load_auth(
         && mode_allowed(AuthMode::ApiKey)
         && auth_mode_is_allowed(allowed_login_methods, AuthMode::ApiKey)
         && let Some(api_key) = read_codex_api_key_from_env()
+    {
+        return Ok(Some(CodexAuth::from_api_key(api_key.as_str())));
+    }
+
+    // `CORTECS_API_KEY` is the documented way to provide a cortecs.ai key without a login.
+    if mode_allowed(AuthMode::ApiKey)
+        && auth_mode_is_allowed(allowed_login_methods, AuthMode::ApiKey)
+        && let Some(api_key) = read_cortecs_api_key_from_env()
     {
         return Ok(Some(CodexAuth::from_api_key(api_key.as_str())));
     }

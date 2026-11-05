@@ -80,6 +80,13 @@ const MAX_STREAM_MAX_RETRIES: u64 = 100;
 /// Hard cap for user-configured `request_max_retries`.
 const MAX_REQUEST_MAX_RETRIES: u64 = 100;
 
+pub const CORTECS_PROVIDER_NAME: &str = "cortecs.ai";
+pub const CORTECS_PROVIDER_ID: &str = "cortecs";
+pub const CORTECS_DEFAULT_BASE_URL: &str = "https://api.cortecs.ai/v1";
+/// Model used when neither the config nor the command line selects one.
+pub const CORTECS_DEFAULT_MODEL: &str = "glm-5.3-flash";
+/// Provider used when the config does not select one.
+pub const DEFAULT_MODEL_PROVIDER_ID: &str = CORTECS_PROVIDER_ID;
 pub const OPENAI_PROVIDER_NAME: &str = "OpenAI";
 const OPENAI_ACTOR_AUTHORIZATION_HEADER: &str = "x-openai-actor-authorization";
 pub const OPENAI_PROVIDER_ID: &str = "openai";
@@ -613,6 +620,38 @@ other non-default provider fields are not supported"
         }
     }
 
+    /// Built-in cortecs.ai provider. Authentication uses the regular API-key login
+    /// flow (`auth.json`) or the `CORTECS_API_KEY` environment variable.
+    pub fn create_cortecs_provider() -> ModelProviderInfo {
+        let base_url = std::env::var("CORTECS_BASE_URL")
+            .ok()
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or_else(|| CORTECS_DEFAULT_BASE_URL.to_string());
+        ModelProviderInfo {
+            name: CORTECS_PROVIDER_NAME.into(),
+            base_url: Some(base_url),
+            env_key_instructions: Some(
+                "Create an API key at https://cortecs.ai and run `cortecs-codex login`."
+                    .to_string(),
+            ),
+            wire_api: WireApi::Responses,
+            requires_openai_auth: true,
+            ..Default::default()
+        }
+    }
+
+    /// Whether requests go to the cortecs.ai API (built-in or user-defined provider).
+    pub fn is_cortecs(&self) -> bool {
+        self.name == CORTECS_PROVIDER_NAME
+            || self.base_url.as_deref().is_some_and(|base_url| {
+                base_url
+                    .parse::<http::Uri>()
+                    .ok()
+                    .and_then(|uri| uri.host().map(str::to_ascii_lowercase))
+                    .is_some_and(|host| host == "cortecs.ai" || host.ends_with(".cortecs.ai"))
+            })
+    }
+
     pub fn create_amazon_bedrock_provider(
         aws: Option<ModelProviderAwsAuthInfo>,
     ) -> ModelProviderInfo {
@@ -760,10 +799,12 @@ pub fn built_in_model_providers(
     let amazon_bedrock_runtime_provider =
         P::create_amazon_bedrock_runtime_provider(/*aws*/ None);
     let gcp_provider = P::create_gcp_provider();
+    let cortecs_provider = P::create_cortecs_provider();
 
     // Bundle OpenAI, supported cloud-hosted OpenAI backends, and local OSS providers.
     // Other compatible providers can be added through `model_providers` in config.toml.
     [
+        (CORTECS_PROVIDER_ID, cortecs_provider),
         (OPENAI_PROVIDER_ID, openai_provider),
         (AMAZON_BEDROCK_PROVIDER_ID, amazon_bedrock_provider),
         (GCP_PROVIDER_ID, gcp_provider),
@@ -842,6 +883,10 @@ pub fn merge_configured_model_providers(
             }
         } else if key == GCP_PROVIDER_ID {
             merge_gcp_provider_overrides(model_providers.get_mut(&key), provider)?;
+        } else if key == CORTECS_PROVIDER_ID {
+            // A user-defined `[model_providers.cortecs]` (as documented by cortecs.ai)
+            // replaces the built-in definition instead of being ignored.
+            model_providers.insert(key, provider);
         } else {
             model_providers.entry(key).or_insert(provider);
         }

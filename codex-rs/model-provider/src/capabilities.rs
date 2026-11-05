@@ -42,6 +42,18 @@ impl ProviderCapabilities {
             },
             ..Self::default()
         };
+        // cortecs.ai has no hosted web-search or image-generation tools; advertising them makes
+        // some routed models reject requests.
+        let defaults = if info.is_cortecs() {
+            Self {
+                image_generation: false,
+                web_search: false,
+                external_web_access: false,
+                ..defaults
+            }
+        } else {
+            defaults
+        };
         let overrides = info.capabilities.unwrap_or_default();
         Self {
             external_web_access: overrides

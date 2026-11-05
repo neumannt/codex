@@ -79,7 +79,7 @@ impl ConfigManager {
         let default_id = layers
             .required_model_provider()
             .or_else(|| effective.get("model_provider").and_then(TomlValue::as_str))
-            .unwrap_or(OPENAI_PROVIDER_ID);
+            .unwrap_or(codex_model_provider_info::DEFAULT_MODEL_PROVIDER_ID);
         let selection_layer = layers
             .layers_high_to_low()
             .find(|layer| layer.config.get("model_provider").is_some());
@@ -93,7 +93,10 @@ impl ConfigManager {
             .flat_map(|table| table.keys().map(String::as_str))
             // Local OSS built-ins cannot have configured provider tables.
             .filter(|id| !matches!(*id, OLLAMA_OSS_PROVIDER_ID | LMSTUDIO_OSS_PROVIDER_ID))
-            .chain([OPENAI_PROVIDER_ID])
+            .chain([
+                codex_model_provider_info::CORTECS_PROVIDER_ID,
+                OPENAI_PROVIDER_ID,
+            ])
             .collect();
         let data = ids
             .into_iter()
