@@ -4243,7 +4243,12 @@ impl Config {
 
         let forced_login_method = cfg.forced_login_method;
 
-        let model = model.or(cfg.model);
+        let model = model.or(cfg.model).or_else(|| {
+            // cortecs fork: start with a known-good model even if the catalog is unreachable.
+            model_provider
+                .is_cortecs()
+                .then(|| codex_model_provider_info::CORTECS_DEFAULT_MODEL.to_string())
+        });
         let notices = cfg.notice.unwrap_or_default();
         let service_tier = match service_tier_override {
             Some(Some(service_tier)) => Some(service_tier),
