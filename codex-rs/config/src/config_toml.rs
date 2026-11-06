@@ -168,6 +168,9 @@ pub struct FeatureToggleToml {
 pub struct ConfigToml {
     /// Optional override of model selection.
     pub model: Option<String>,
+    /// cortecs.ai models listed first in the model picker, in this order. Models the catalog
+    /// does not offer are skipped; all other models remain selectable below.
+    pub suggested_models: Option<Vec<String>>,
     /// Default Daybreak preference for new threads and non-interactive turns.
     pub daybreak: Option<bool>,
     /// Review model override used by the `/review` feature.

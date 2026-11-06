@@ -83,8 +83,38 @@ const MAX_REQUEST_MAX_RETRIES: u64 = 100;
 pub const CORTECS_PROVIDER_NAME: &str = "cortecs.ai";
 pub const CORTECS_PROVIDER_ID: &str = "cortecs";
 pub const CORTECS_DEFAULT_BASE_URL: &str = "https://api.cortecs.ai/v1";
-/// Model used when neither the config nor the command line selects one.
-pub const CORTECS_DEFAULT_MODEL: &str = "glm-5.3-flash";
+/// Models listed first in the cortecs model picker, in order (cheap, medium, expensive).
+/// `suggested_models` in config.toml replaces this list.
+pub const CORTECS_SUGGESTED_MODELS: &[&str] =
+    &["glm-5.3-flash", "mistral-large-4-0", "gemini-4-argon"];
+/// Model used when neither the config nor the command line selects one. Deliberately not
+/// taken from `suggested_models`: the config loads before the catalog, so a suggested model
+/// that cortecs does not serve (e.g. with EU-only routing) would break startup.
+pub const CORTECS_DEFAULT_MODEL: &str = CORTECS_SUGGESTED_MODELS[0];
+
+static CORTECS_SUGGESTED_MODELS_OVERRIDE: std::sync::RwLock<Option<Vec<String>>> =
+    std::sync::RwLock::new(None);
+
+/// Applies the `suggested_models` config setting (`None` restores the built-in list).
+pub fn set_cortecs_suggested_models(models: Option<Vec<String>>) {
+    *CORTECS_SUGGESTED_MODELS_OVERRIDE
+        .write()
+        .unwrap_or_else(std::sync::PoisonError::into_inner) = models;
+}
+
+/// Models to list first in the cortecs model picker, in order.
+pub fn cortecs_suggested_models() -> Vec<String> {
+    CORTECS_SUGGESTED_MODELS_OVERRIDE
+        .read()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .clone()
+        .unwrap_or_else(|| {
+            CORTECS_SUGGESTED_MODELS
+                .iter()
+                .map(ToString::to_string)
+                .collect()
+        })
+}
 /// Provider used when the config does not select one.
 pub const DEFAULT_MODEL_PROVIDER_ID: &str = CORTECS_PROVIDER_ID;
 pub const OPENAI_PROVIDER_NAME: &str = "OpenAI";

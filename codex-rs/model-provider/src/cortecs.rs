@@ -6,7 +6,7 @@
 //! the model picker, context-window accounting, reasoning controls and image support reflect
 //! what cortecs actually serves.
 
-use codex_model_provider_info::CORTECS_DEFAULT_MODEL;
+use codex_model_provider_info::cortecs_suggested_models;
 use codex_models_manager::model_info::generic_model_info;
 use codex_protocol::openai_models::ApplyPatchToolType;
 use codex_protocol::openai_models::ConfigShellToolType;
@@ -105,15 +105,32 @@ pub(crate) fn models_from_openai_list(body: &[u8]) -> Result<Vec<ModelInfo>, ser
                 .map_err(|_| error);
         }
     };
-    let mut models: Vec<ModelInfo> = list.data.iter().map(model_info).collect();
-    // Default model first, then alphabetical; the picker orders by priority.
-    models.sort_by(|a, b| {
-        (a.slug != CORTECS_DEFAULT_MODEL, &a.slug).cmp(&(b.slug != CORTECS_DEFAULT_MODEL, &b.slug))
-    });
+    Ok(order_models(
+        list.data.iter().map(model_info).collect(),
+        &cortecs_suggested_models(),
+    ))
+}
+
+/// Suggested models first (in the configured order, tagged "suggested"), then the rest
+/// alphabetically. The picker orders by priority.
+fn order_models(mut models: Vec<ModelInfo>, suggested: &[String]) -> Vec<ModelInfo> {
+    let rank = |slug: &str| {
+        suggested
+            .iter()
+            .position(|candidate| candidate == slug)
+            .unwrap_or(usize::MAX)
+    };
+    models.sort_by(|a, b| (rank(&a.slug), &a.slug).cmp(&(rank(&b.slug), &b.slug)));
     for (index, model) in models.iter_mut().enumerate() {
         model.priority = i32::try_from(index).unwrap_or(i32::MAX);
+        if rank(&model.slug) != usize::MAX {
+            model.description = Some(match model.description.take() {
+                Some(description) => format!("suggested · {description}"),
+                None => "suggested".to_string(),
+            });
+        }
     }
-    Ok(models)
+    models
 }
 
 fn model_info(model: &OpenAiModel) -> ModelInfo {

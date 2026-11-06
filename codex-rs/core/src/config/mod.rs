@@ -4243,6 +4243,7 @@ impl Config {
 
         let forced_login_method = cfg.forced_login_method;
 
+        codex_model_provider_info::set_cortecs_suggested_models(cfg.suggested_models.clone());
         let model = model.or(cfg.model).or_else(|| {
             // cortecs fork: start with a known-good model even if the catalog is unreachable.
             model_provider

@@ -45,6 +45,15 @@ model = "glm-5.3"
 model_reasoning_effort = "high"   # low | medium | high (cortecs maps it to what the model supports)
 ```
 
+The picker starts with a few suggested models (cheap, medium, expensive): `glm-5.3-flash`,
+`mistral-large-4-0`, `gemini-4-argon`. All other models follow alphabetically. To choose your
+own suggestions, set them in `config.toml`. Models that cortecs does not offer, for example
+with EU-only routing, are skipped:
+
+```toml
+suggested_models = ["glm-5.3-flash", "mistral-large-4-0", "gemini-4-argon"]
+```
+
 `-m <model>` selects a model for a single run. Models that are not in the picker, such as
 models without tool calling, can still be selected by name.
 

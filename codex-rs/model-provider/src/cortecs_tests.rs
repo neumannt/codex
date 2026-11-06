@@ -35,7 +35,7 @@ fn maps_cortecs_model_list() {
     );
     assert_eq!(
         glm.description.as_deref(),
-        Some("€0.09/€0.314 per 1M in/out · 1M ctx · reasoning · vision")
+        Some("suggested · €0.09/€0.314 per 1M in/out · 1M ctx · reasoning · vision")
     );
 
     let coder = &models[1];
@@ -46,6 +46,39 @@ fn maps_cortecs_model_list() {
     let chat = &models[2];
     assert_eq!(chat.visibility, ModelVisibility::Hide);
     assert_eq!(chat.apply_patch_tool_type, None);
+}
+
+#[test]
+fn suggested_models_come_first_in_configured_order() {
+    let models = models_from_openai_list(LIST.as_bytes()).expect("parse");
+    let suggested = vec![
+        "zeta-chat".to_string(),
+        "missing-model".to_string(),
+        "alpha-coder".to_string(),
+    ];
+    let models = order_models(models, &suggested);
+    let slugs: Vec<&str> = models.iter().map(|model| model.slug.as_str()).collect();
+    assert_eq!(slugs, vec!["zeta-chat", "alpha-coder", "glm-5.3-flash"]);
+    assert_eq!(
+        models
+            .iter()
+            .map(|model| model.priority)
+            .collect::<Vec<_>>(),
+        vec![0, 1, 2]
+    );
+    assert_eq!(
+        models[1].description.as_deref(),
+        Some("suggested · €1/€2 per 1M in/out · 256k ctx")
+    );
+    let unsuggested = order_models(
+        models_from_openai_list(LIST.as_bytes()).expect("parse"),
+        &[],
+    );
+    let slugs: Vec<&str> = unsuggested
+        .iter()
+        .map(|model| model.slug.as_str())
+        .collect();
+    assert_eq!(slugs, vec!["alpha-coder", "glm-5.3-flash", "zeta-chat"]);
 }
 
 #[test]
