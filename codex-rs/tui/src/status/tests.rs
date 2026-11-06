@@ -473,7 +473,7 @@ async fn status_permissions_non_default_workspace_write_uses_workspace_label() {
 
     assert_eq!(
         permissions_text_for(&config).as_deref(),
-        Some("Custom (workspace with network access, Ask for approval)")
+        Some("Workspace (Ask for approval)")
     );
 }
 
@@ -602,7 +602,7 @@ async fn status_permissions_named_profile_shows_additional_writable_roots() {
 
     assert_eq!(
         permissions_text_for(&config).as_deref(),
-        Some("Workspace (Ask for approval)")
+        Some("Workspace without network access (Ask for approval)")
     );
 }
 
@@ -655,7 +655,7 @@ async fn status_permissions_workspace_roots_include_profile_defined_directories(
             PermissionProfileSnapshot::active_with_profile_workspace_roots(
                 PermissionProfile::workspace_write_with(
                     std::slice::from_ref(&profile_root),
-                    NetworkSandboxPolicy::Restricted,
+                    NetworkSandboxPolicy::Enabled,
                     /*exclude_tmpdir_env_var*/ false,
                     /*exclude_slash_tmp*/ false,
                 ),
@@ -698,7 +698,7 @@ async fn status_permissions_broadened_workspace_profile_shows_builtin_label() {
 
     assert_eq!(
         permissions_text_for(&config).as_deref(),
-        Some("Workspace with network access (Ask for approval)")
+        Some("Workspace (Ask for approval)")
     );
 }
 
@@ -2381,7 +2381,7 @@ async fn status_permissions_include_executor_profile_root() {
 
     assert_snapshot!(
         permissions_text_for_width(&config, /*width*/ 160).expect("permissions line"),
-        @r"Profile executor (workspace [\\server\share\foreign], Ask for approval)"
+        @r"Profile executor (workspace without network access [\\server\share\foreign], Ask for approval)"
     );
 }
 

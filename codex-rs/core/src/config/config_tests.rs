@@ -2999,9 +2999,15 @@ extends = ":workspace"
             extends: Some(BUILT_IN_PERMISSION_PROFILE_WORKSPACE.to_string()),
         })
     );
+    // Custom profiles keep network off unless they enable it.
     assert_eq!(
         config.legacy_sandbox_policy(),
-        SandboxPolicy::new_workspace_write_policy()
+        SandboxPolicy::WorkspaceWrite {
+            writable_roots: vec![],
+            network_access: false,
+            exclude_tmpdir_env_var: false,
+            exclude_slash_tmp: false,
+        }
     );
     Ok(())
 }
@@ -3700,7 +3706,9 @@ async fn explicit_builtin_workspace_profile_ignores_legacy_workspace_write_setti
             default_permissions: Some(BUILT_IN_PERMISSION_PROFILE_WORKSPACE.to_string()),
             sandbox_workspace_write: Some(SandboxWorkspaceWrite {
                 writable_roots: vec![extra_root.path().abs()],
-                network_access: true,
+                // cortecs fork: the built-in default is network on, so the legacy setting
+                // being ignored shows as network staying on.
+                network_access: false,
                 exclude_tmpdir_env_var: true,
                 exclude_slash_tmp: true,
             }),
@@ -3717,7 +3725,7 @@ async fn explicit_builtin_workspace_profile_ignores_legacy_workspace_write_setti
     let policy = config.permissions.file_system_sandbox_policy();
     assert_eq!(
         config.permissions.network_sandbox_policy(),
-        NetworkSandboxPolicy::Restricted
+        NetworkSandboxPolicy::Enabled
     );
     assert!(
         !policy.entries.iter().any(|entry| matches!(
@@ -5137,7 +5145,8 @@ trust_level = "trusted"
             resolution,
             SandboxPolicy::WorkspaceWrite {
                 writable_roots: vec![writable_root.clone()],
-                network_access: false,
+                // cortecs fork: network is on unless `network_access = false`.
+                network_access: true,
                 exclude_tmpdir_env_var: true,
                 exclude_slash_tmp: true,
             }
@@ -5176,7 +5185,7 @@ exclude_slash_tmp = true
             resolution,
             SandboxPolicy::WorkspaceWrite {
                 writable_roots: vec![writable_root],
-                network_access: false,
+                network_access: true,
                 exclude_tmpdir_env_var: true,
                 exclude_slash_tmp: true,
             }

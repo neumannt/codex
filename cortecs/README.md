@@ -68,6 +68,7 @@ models without tool calling, can still be selected by name.
 | Provider | Built-in `cortecs` provider (Responses API at `https://api.cortecs.ai/v1`) is the default. A `[model_providers.cortecs]` table in config, as in the cortecs docs, replaces it. `CORTECS_BASE_URL` overrides the endpoint. |
 | Login | API key only (no ChatGPT sign-in). `CORTECS_API_KEY` is honored. A missing or rejected key stops with a clear message instead of retrying. |
 | Model catalog | Built from cortecs `/v1/models` (pricing, context window, reasoning, vision); OpenAI's bundled model list is never used. |
+| Sandbox network | Sandboxed commands have network access by default (upstream blocks it), so commands like `npm install` don't need to leave the sandbox. Set `[sandbox_workspace_write] network_access = false` to turn it off. Custom `[permissions]` profiles keep their own `network` setting. |
 | Model picker | Enter in `/model` applies to the current session only; `d` saves the choice as the default. Upstream saves on Enter and uses `s` for session-only. |
 | Hosted tools | OpenAI-hosted `web_search` and image generation are not offered (cortecs does not provide them), and the bundled OpenAI-specific skills (`imagegen`, `openai-docs`) are removed. |
 | Privacy | No Statsig metrics, no analytics events, no announcement/update checks against GitHub/npm, no curated plugin sync from GitHub/chatgpt.com, `/feedback` uploads disabled. Codex turn metadata (workspace paths, git state, installation id) is not sent to cortecs. |

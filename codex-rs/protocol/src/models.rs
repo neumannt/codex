@@ -527,9 +527,11 @@ impl PermissionProfile {
     /// The returned profile contains symbolic `:workspace_roots` entries that
     /// must be resolved against the active permission root before enforcement.
     pub fn workspace_write() -> Self {
+        // cortecs fork: network is on by default, so commands that need it can stay sandboxed
+        // instead of asking to run with no sandbox at all.
         Self::workspace_write_with(
             &[],
-            NetworkSandboxPolicy::Restricted,
+            NetworkSandboxPolicy::Enabled,
             /*exclude_tmpdir_env_var*/ false,
             /*exclude_slash_tmp*/ false,
         )

@@ -665,10 +665,12 @@ fn status_permission_summary(
         return "read-only".to_string();
     }
     if let Some(details) = summary.strip_prefix("workspace-write") {
+        // cortecs fork: network access is the default for the workspace sandbox, so only
+        // its absence is worth pointing out.
         if details.contains("(network access enabled)") {
-            return "workspace with network access".to_string();
+            return "workspace".to_string();
         }
-        return "workspace".to_string();
+        return "workspace without network access".to_string();
     }
     if summary == "custom permissions (network access enabled)" {
         return "custom permissions with network access".to_string();
@@ -714,9 +716,9 @@ fn status_permissions_label(
                     workspace_root_suffix.unwrap_or("")
                 );
             }
-            "workspace with network access" => {
+            "workspace without network access" => {
                 return format!(
-                    "Workspace with network access{} ({approval})",
+                    "Workspace without network access{} ({approval})",
                     workspace_root_suffix.unwrap_or("")
                 );
             }

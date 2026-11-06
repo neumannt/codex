@@ -4741,7 +4741,8 @@
           "type": "boolean"
         },
         "network_access": {
-          "default": false,
+          "default": true,
+          "description": "Network access for sandboxed commands. cortecs fork: defaults to `true`.",
           "type": "boolean"
         },
         "writable_roots": {

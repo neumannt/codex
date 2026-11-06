@@ -1266,17 +1266,33 @@ pub enum MarketplaceSourceType {
     Local,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default, JsonSchema)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, JsonSchema)]
 #[schemars(deny_unknown_fields)]
 pub struct SandboxWorkspaceWrite {
     #[serde(default)]
     pub writable_roots: Vec<AbsolutePathBuf>,
-    #[serde(default)]
+    /// Network access for sandboxed commands. cortecs fork: defaults to `true`.
+    #[serde(default = "default_network_access")]
     pub network_access: bool,
     #[serde(default)]
     pub exclude_tmpdir_env_var: bool,
     #[serde(default)]
     pub exclude_slash_tmp: bool,
+}
+
+fn default_network_access() -> bool {
+    true
+}
+
+impl Default for SandboxWorkspaceWrite {
+    fn default() -> Self {
+        Self {
+            writable_roots: Vec::new(),
+            network_access: default_network_access(),
+            exclude_tmpdir_env_var: false,
+            exclude_slash_tmp: false,
+        }
+    }
 }
 
 #[cfg(test)]

@@ -1174,9 +1174,10 @@ mod tests {
         assert_eq!(thread.name, Some("Saved title".to_string()));
         assert_eq!(thread.model_provider, "rollout-provider");
         assert_eq!(thread.cwd, sqlite_cwd);
+        // cortecs fork: "workspace-write" means network access by default.
         let legacy_policy = SandboxPolicy::WorkspaceWrite {
             writable_roots: Vec::new(),
-            network_access: false,
+            network_access: true,
             exclude_tmpdir_env_var: false,
             exclude_slash_tmp: false,
         };

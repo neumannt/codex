@@ -6,7 +6,6 @@ use codex_protocol::config_types::WindowsSandboxLevel;
 use codex_protocol::models::AdditionalPermissionProfile;
 use codex_protocol::models::FileSystemPermissions;
 use codex_protocol::models::PermissionProfile;
-use codex_protocol::permissions::NetworkSandboxPolicy;
 use codex_protocol::protocol::EnvironmentConfig;
 use codex_protocol::protocol::EnvironmentConfigState;
 use codex_protocol::protocol::GranularApprovalConfig;
@@ -263,7 +262,7 @@ async fn file_system_sandbox_context_preserves_executor_workspace_permissions() 
     let file_system_policy =
         effective_file_system_sandbox_policy(&file_system_policy, Some(&additional_permissions));
     let network_policy = effective_network_sandbox_policy(
-        NetworkSandboxPolicy::Restricted,
+        exec_server_permissions.network_sandbox_policy(),
         Some(&additional_permissions),
     );
     let expected_permissions =

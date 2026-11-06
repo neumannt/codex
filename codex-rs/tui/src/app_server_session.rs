@@ -3838,7 +3838,7 @@ mod tests {
             sandbox_policy,
             Some(codex_app_server_protocol::SandboxPolicy::WorkspaceWrite {
                 writable_roots: Vec::new(),
-                network_access: false,
+                network_access: true,
                 exclude_tmpdir_env_var: false,
                 exclude_slash_tmp: false,
             })

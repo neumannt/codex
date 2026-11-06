@@ -1,6 +1,5 @@
 ---
 source: tui/src/status/tests.rs
-assertion_line: 1663
 expression: sanitized
 ---
 /status
@@ -15,9 +14,7 @@ expression: sanitized
                        none, summaries
                        auto)
   Directory:           [[workspace]]
-  Permissions:         Custom (workspace
-                       with network
-                       access, Ask for
+  Permissions:         Workspace (Ask for
                        approval)
   Agents.md:           <none>
   Account:             ｶﾞﾊﾟｶﾞﾊﾟｶﾞﾊﾟ
