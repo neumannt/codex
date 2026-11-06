@@ -250,7 +250,7 @@ async fn reasoning_selection_in_plan_mode_opens_scope_prompt_event() {
     let preset = get_available_model(&chat, "gpt-5.5");
     chat.open_reasoning_popup(preset);
     chat.handle_key_event(KeyEvent::from(KeyCode::Down));
-    chat.handle_key_event(KeyEvent::from(KeyCode::Enter));
+    chat.handle_key_event(KeyEvent::from(KeyCode::Char('d')));
 
     let event = rx.try_recv().expect("expected AppEvent");
     assert_matches!(
@@ -277,7 +277,7 @@ async fn reasoning_selection_in_plan_mode_without_effort_change_does_not_open_sc
 
     let preset = get_available_model(&chat, "gpt-5.5");
     chat.open_reasoning_popup(preset);
-    chat.handle_key_event(KeyEvent::from(KeyCode::Enter));
+    chat.handle_key_event(KeyEvent::from(KeyCode::Char('d')));
 
     let events = std::iter::from_fn(|| rx.try_recv().ok()).collect::<Vec<_>>();
     assert!(
@@ -309,7 +309,7 @@ async fn reasoning_selection_in_plan_mode_matching_plan_effort_but_different_glo
 
     let preset = get_available_model(&chat, "gpt-5.5");
     chat.open_reasoning_popup(preset);
-    chat.handle_key_event(KeyEvent::from(KeyCode::Enter));
+    chat.handle_key_event(KeyEvent::from(KeyCode::Char('d')));
 
     let event = rx.try_recv().expect("expected AppEvent");
     assert_matches!(
@@ -385,7 +385,7 @@ async fn advanced_reasoning_selection_in_plan_mode_uses_expected_scope() {
             description: "Advanced reasoning".to_string(),
         }];
         chat.open_advanced_reasoning_popup(preset);
-        chat.handle_key_event(KeyEvent::from(KeyCode::Enter));
+        chat.handle_key_event(KeyEvent::from(KeyCode::Char('d')));
 
         let events = std::iter::from_fn(|| rx.try_recv().ok()).collect::<Vec<_>>();
         if effort == ReasoningEffortConfig::Ultra {
@@ -450,7 +450,7 @@ async fn reasoning_selection_in_plan_mode_model_switch_does_not_open_scope_promp
 
     let preset = get_available_model(&chat, "gpt-5.6-terra");
     chat.open_reasoning_popup(preset);
-    chat.handle_key_event(KeyEvent::from(KeyCode::Enter));
+    chat.handle_key_event(KeyEvent::from(KeyCode::Char('d')));
 
     let events = std::iter::from_fn(|| rx.try_recv().ok()).collect::<Vec<_>>();
     assert!(

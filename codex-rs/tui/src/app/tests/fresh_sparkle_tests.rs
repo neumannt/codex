@@ -263,7 +263,7 @@ async fn commands_can_precede_the_sparkle_but_inserted_or_typed_drafts_cannot() 
                     &mut server,
                     &mut events,
                     "gpt-6-astra",
-                    KeyCode::Enter,
+                    KeyCode::Char('d'),
                 )
                 .await?,
                 1
@@ -416,7 +416,7 @@ async fn only_confirmed_picker_model_changes_can_arm_the_sparkle() -> Result<()>
                         &mut server,
                         &mut events,
                         "gpt-5.5",
-                        KeyCode::Enter,
+                        KeyCode::Char('d'),
                     )
                     .await?,
                     0
@@ -437,7 +437,7 @@ async fn only_confirmed_picker_model_changes_can_arm_the_sparkle() -> Result<()>
                         &mut server,
                         &mut events,
                         "gpt-6-astra",
-                        KeyCode::Enter,
+                        KeyCode::Char('d'),
                     )
                     .await?,
                     1
@@ -478,14 +478,14 @@ async fn only_confirmed_picker_model_changes_can_arm_the_sparkle() -> Result<()>
 async fn astra_picker_confirms_the_model_at_application_after_an_automatic_update() -> Result<()> {
     let mut snapshots = Vec::new();
     for (picker, key, switches_away) in [
-        ("default no-op", KeyCode::Enter, false),
-        ("session no-op", KeyCode::Char('s'), false),
-        ("advanced no-op", KeyCode::Enter, false),
-        ("default queued no-op", KeyCode::Enter, false),
-        ("session queued no-op", KeyCode::Char('s'), false),
-        ("default changes model", KeyCode::Enter, true),
-        ("session changes model", KeyCode::Char('s'), true),
-        ("advanced changes model", KeyCode::Enter, true),
+        ("default no-op", KeyCode::Char('d'), false),
+        ("session no-op", KeyCode::Enter, false),
+        ("advanced no-op", KeyCode::Char('d'), false),
+        ("default queued no-op", KeyCode::Char('d'), false),
+        ("session queued no-op", KeyCode::Enter, false),
+        ("default changes model", KeyCode::Char('d'), true),
+        ("session changes model", KeyCode::Enter, true),
+        ("advanced changes model", KeyCode::Char('d'), true),
     ] {
         let (mut app, mut events, _ops) = make_test_app_with_channels().await;
         app.config.model = Some("gpt-5.5".into());
@@ -686,7 +686,7 @@ async fn session_only_astra_picker_shows_stars_only_on_an_untouched_task() -> Re
                 &mut server,
                 &mut events,
                 "gpt-6-astra",
-                KeyCode::Char('s'),
+                KeyCode::Enter,
             )
             .await?,
             1
@@ -723,7 +723,7 @@ async fn session_only_astra_picker_shows_stars_only_on_an_untouched_task() -> Re
                 &mut server,
                 &mut events,
                 "gpt-6-astra",
-                KeyCode::Char('s'),
+                KeyCode::Enter,
             )
             .await?,
             0

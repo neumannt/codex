@@ -69,7 +69,8 @@ async fn bedrock_astra_model_and_reasoning_pickers() {
                 render_bottom_popup(&chat, /*width*/ 100)
             );
         }
-        chat.handle_key_event(KeyEvent::from(KeyCode::Char('2')));
+        chat.handle_key_event(KeyEvent::from(KeyCode::Down));
+        chat.handle_key_event(KeyEvent::from(KeyCode::Char('d')));
         let selected =
             std::iter::from_fn(|| events.try_recv().ok()).find_map(|event| match event {
                 AppEvent::AstraSelectedFromModelPicker {

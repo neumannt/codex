@@ -3808,7 +3808,7 @@ async fn model_reasoning_selection_popup_applies_custom_effort() {
     while rx.try_recv().is_ok() {}
 
     chat.handle_key_event(KeyEvent::from(KeyCode::Down));
-    chat.handle_key_event(KeyEvent::from(KeyCode::Enter));
+    chat.handle_key_event(KeyEvent::from(KeyCode::Char('d')));
 
     let selected_effort_events = std::iter::from_fn(|| rx.try_recv().ok())
         .filter_map(|event| match event {
@@ -3852,7 +3852,7 @@ async fn select_ultra_with_multi_agent_thread_limit(max_threads: usize) -> (bool
         _ => None,
     });
     chat.open_advanced_reasoning_popup(advanced_preset.expect("advanced reasoning popup"));
-    chat.handle_key_event(KeyEvent::from(KeyCode::Enter));
+    chat.handle_key_event(KeyEvent::from(KeyCode::Char('d')));
 
     let mut selected_ultra = false;
     let mut warnings = Vec::new();
@@ -3905,7 +3905,7 @@ async fn max_reasoning_selection_persists_model_selection() {
         description: "Maximum reasoning".to_string(),
     }];
     chat.open_advanced_reasoning_popup(preset);
-    chat.handle_key_event(KeyEvent::from(KeyCode::Enter));
+    chat.handle_key_event(KeyEvent::from(KeyCode::Char('d')));
 
     let events = std::iter::from_fn(|| rx.try_recv().ok()).collect::<Vec<_>>();
     assert!(events.iter().any(|event| matches!(

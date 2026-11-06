@@ -122,37 +122,36 @@ impl ChatWidget {
                             .supported_reasoning_efforts
                             .iter()
                             .any(|option| Self::is_advanced_reasoning_effort(&option.effort));
-                let actions: Vec<SelectionAction> = if requires_advanced_selection {
+                let (actions, secondary_action) = if requires_advanced_selection {
                     let preset_for_action = preset.clone();
-                    vec![Box::new(move |tx| {
+                    let actions: Vec<SelectionAction> = vec![Box::new(move |tx| {
                         tx.send(AppEvent::OpenReasoningPopup {
                             model: preset_for_action.clone(),
                         });
-                    })]
+                    })];
+                    (actions, None)
                 } else {
                     let should_prompt_plan_mode_scope = self
                         .should_prompt_plan_mode_reasoning_scope(
                             model.as_str(),
                             Some(preset.default_reasoning_effort.clone()),
                         );
-                    self.model_selection_actions(
+                    let persist_actions = self.model_selection_actions(
                         model.clone(),
                         Some(preset.default_reasoning_effort.clone()),
                         should_prompt_plan_mode_scope,
+                    );
+                    self.session_first_model_actions(
+                        model.clone(),
+                        Some(preset.default_reasoning_effort.clone()),
+                        persist_actions,
                     )
                 };
                 SelectionItem {
-                    name: preset.display_name.clone(),
+                    name: preset.display_name,
                     description,
                     is_current: model.as_str() == current_model,
-                    secondary_action: if requires_advanced_selection {
-                        None
-                    } else {
-                        self.session_model_selection_action(
-                            model.clone(),
-                            Some(preset.default_reasoning_effort),
-                        )
-                    },
+                    secondary_action,
                     actions,
                     dismiss_on_select: !requires_advanced_selection,
                     dismiss_parent_on_child_accept: requires_advanced_selection,
@@ -255,20 +254,39 @@ impl ChatWidget {
             }
             .filter(|effort| !Self::is_advanced_reasoning_effort(effort));
             let single_supported_effort = direct_effort.is_some();
-            let preset_for_action = preset.clone();
-            let actions: Vec<SelectionAction> = vec![Box::new(move |tx| {
-                let preset_for_event = preset_for_action.clone();
-                tx.send(AppEvent::OpenReasoningPopup {
-                    model: preset_for_event,
-                });
-            })];
+            let (actions, secondary_action) = match direct_effort {
+                // A single reasoning level needs no second screen: choose it right here.
+                Some(effort) => {
+                    let persist_actions = self.model_selection_actions(
+                        preset.model.clone(),
+                        Some(effort.clone()),
+                        self.should_prompt_plan_mode_reasoning_scope(
+                            preset.model.as_str(),
+                            Some(effort.clone()),
+                        ),
+                    );
+                    self.session_first_model_actions(
+                        preset.model.clone(),
+                        Some(effort),
+                        persist_actions,
+                    )
+                }
+                None => {
+                    let preset_for_action = preset.clone();
+                    let actions: Vec<SelectionAction> = vec![Box::new(move |tx| {
+                        let preset_for_event = preset_for_action.clone();
+                        tx.send(AppEvent::OpenReasoningPopup {
+                            model: preset_for_event,
+                        });
+                    })];
+                    (actions, None)
+                }
+            };
             items.push(SelectionItem {
                 name: preset.display_name.clone(),
                 description,
                 is_current,
-                secondary_action: direct_effort.and_then(|effort| {
-                    self.session_model_selection_action(preset.model.clone(), Some(effort))
-                }),
+                secondary_action,
                 actions,
                 dismiss_on_select: single_supported_effort,
                 dismiss_parent_on_child_accept: !single_supported_effort,
@@ -581,10 +599,15 @@ impl ChatWidget {
                 model_slug.as_str(),
                 choice_effort.clone(),
             );
-            let actions = self.model_selection_actions(
+            let persist_actions = self.model_selection_actions(
                 model_slug.clone(),
                 choice_effort.clone(),
                 should_prompt_plan_mode_scope,
+            );
+            let (actions, secondary_action) = self.session_first_model_actions(
+                model_slug.clone(),
+                choice_effort,
+                persist_actions,
             );
 
             items.push(SelectionItem {
@@ -592,8 +615,7 @@ impl ChatWidget {
                 description,
                 selected_description,
                 is_current: is_current_model && Some(choice) == highlight_choice.as_ref(),
-                secondary_action: self
-                    .session_model_selection_action(model_slug.clone(), choice_effort),
+                secondary_action,
                 actions,
                 dismiss_on_select: true,
                 ..Default::default()
@@ -679,18 +701,22 @@ impl ChatWidget {
             };
             let should_prompt_plan_mode_scope = self
                 .should_prompt_plan_mode_reasoning_scope(model_slug.as_str(), Some(effort.clone()));
-            let actions = self.model_selection_actions(
+            let persist_actions = self.model_selection_actions(
                 model_slug.clone(),
                 Some(effort.clone()),
                 should_prompt_plan_mode_scope,
+            );
+            let (actions, secondary_action) = self.session_first_model_actions(
+                model_slug.clone(),
+                Some(effort.clone()),
+                persist_actions,
             );
 
             items.push(SelectionItem {
                 name: Self::reasoning_effort_label(&effort),
                 description: Some(description.to_string()),
                 is_current: is_current_model && Some(&effort) == highlight_choice.as_ref(),
-                secondary_action: self
-                    .session_model_selection_action(model_slug.clone(), Some(effort.clone())),
+                secondary_action,
                 actions,
                 dismiss_on_select: true,
                 ..Default::default()

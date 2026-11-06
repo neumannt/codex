@@ -54,27 +54,31 @@ impl AstraModelPickerAction {
 }
 
 impl ChatWidget {
-    pub(super) fn session_model_selection_action(
+    /// cortecs fork: Enter switches the model for this session only; `d` saves it as the
+    /// default for new sessions (running `persist_actions`). Without a session-only variant,
+    /// Enter keeps running `persist_actions`.
+    pub(super) fn session_first_model_actions(
         &self,
         model: String,
         effort: Option<ReasoningEffortConfig>,
-    ) -> Option<SelectionSecondaryAction> {
+        persist_actions: Vec<SelectionAction>,
+    ) -> (Vec<SelectionAction>, Option<SelectionSecondaryAction>) {
         // Reserve selections are already session-only.
         if model == LUNA_RESERVE_MODEL {
-            return None;
+            return (persist_actions, None);
         }
-        let key = key_hint::plain(KeyCode::Char('s'));
+        let key = key_hint::plain(KeyCode::Char('d'));
         let keymap = self.bottom_pane.list_keymap();
         let mut hints = Vec::new();
         if let Some(accept) = keymap.primary_hint(ListAction::Accept) {
-            let label = if effort == Some(ReasoningEffortConfig::Ultra) {
-                " apply · "
-            } else {
-                " default · "
-            };
-            hints.extend([accept.into(), label.dim()]);
+            hints.extend([accept.into(), " this session · ".dim()]);
         }
-        hints.extend([key.into(), " session".dim()]);
+        let label = if effort == Some(ReasoningEffortConfig::Ultra) {
+            " apply"
+        } else {
+            " save as default"
+        };
+        hints.extend([key.into(), label.dim()]);
         if let Some(cancel) = keymap.primary_hint(ListAction::Cancel) {
             hints.extend([" · ".dim(), cancel.into(), " back".dim()]);
         }
@@ -82,23 +86,32 @@ impl ChatWidget {
             .as_ref()
             .and_then(|effort| self.ultra_reasoning_concurrency_warning(effort));
         let sparkle_thread = self.sparkle_thread_for_picker_action(&model);
-        Some(SelectionSecondaryAction {
-            key,
-            footer_hint: hints.into(),
-            action: Box::new(move |tx| {
-                tx.send(
-                    AstraModelPickerAction::SelectSessionModel {
-                        effort: effort.clone(),
-                        service_tier: None,
-                    }
-                    .into_picker_event(sparkle_thread, model.clone()),
-                );
-                if let Some(warning) = warning.clone() {
-                    tx.send(AppEvent::InsertHistoryCell(Box::new(
-                        history_cell::new_warning_event(warning),
-                    )));
+        let session_action: SelectionAction = Box::new(move |tx| {
+            tx.send(
+                AstraModelPickerAction::SelectSessionModel {
+                    effort: effort.clone(),
+                    service_tier: None,
                 }
+                .into_picker_event(sparkle_thread, model.clone()),
+            );
+            if let Some(warning) = warning.clone() {
+                tx.send(AppEvent::InsertHistoryCell(Box::new(
+                    history_cell::new_warning_event(warning),
+                )));
+            }
+        });
+        let persist_action: SelectionAction = Box::new(move |tx| {
+            for action in &persist_actions {
+                action(tx);
+            }
+        });
+        (
+            vec![session_action],
+            Some(SelectionSecondaryAction {
+                key,
+                footer_hint: hints.into(),
+                action: persist_action,
             }),
-        })
+        )
     }
 }

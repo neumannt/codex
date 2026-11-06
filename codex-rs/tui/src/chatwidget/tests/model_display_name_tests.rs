@@ -50,7 +50,7 @@ async fn custom_model_display_name_in_pickers_preserves_selection_slug() {
         "custom_model_display_name_reasoning",
         render_bottom_popup(&chat, /*width*/ 80)
     );
-    chat.handle_key_event(KeyCode::Enter.into());
+    chat.handle_key_event(KeyCode::Char('d').into());
     let persisted = assert_matches!(events.try_recv(), Ok(AppEvent::ApplyModelSelection { model, effort }) => (model, effort));
     assert_eq!(
         persisted,

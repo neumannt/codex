@@ -47,7 +47,7 @@ async fn session_model_selection_accepts_final_choices_without_saving() {
             _ => unreachable!(),
         }
         while rx.try_recv().is_ok() {}
-        chat.handle_key_event(KeyEvent::from(KeyCode::Char('s')));
+        chat.handle_key_event(KeyEvent::from(KeyCode::Enter));
         let selected = rx.try_recv().expect("session-only selection");
         assert_matches!(selected, AppEvent::SelectSessionModel { model, effort: selected_effort, service_tier: None }
             if model == expected_model && selected_effort.as_ref() == Some(&effort));
@@ -95,7 +95,7 @@ async fn session_model_selection_notifies_the_original_task_after_each_final_ast
             _ => unreachable!(),
         }
         while events.try_recv().is_ok() {}
-        chat.handle_key_event(KeyCode::Char('s').into());
+        chat.handle_key_event(KeyCode::Enter.into());
 
         assert_matches!(events.try_recv(), Ok(AppEvent::AstraSelectedFromModelPicker {
             thread_id: selected_thread,
@@ -144,18 +144,22 @@ async fn session_model_selection_hides_conflicting_shortcut() {
     let (mut chat, mut rx, _op_rx) = make_chatwidget_manual(Some("gpt-5.5")).await;
     let mut config = codex_config::types::TuiKeymap::default();
     config.list.accept = Some(codex_config::types::KeybindingsSpec::One(
-        codex_config::types::KeybindingSpec("s".into()),
+        codex_config::types::KeybindingSpec("d".into()),
+    ));
+    // `d` also denies approvals by default; move that out of the way.
+    config.approval.deny = Some(codex_config::types::KeybindingsSpec::One(
+        codex_config::types::KeybindingSpec("x".into()),
     ));
     let keymap = RuntimeKeymap::from_config(&config).expect("valid list keymap");
     chat.bottom_pane.set_keymap_bindings(&keymap);
     let preset = get_available_model(&chat, "gpt-5.5");
     chat.open_reasoning_popup(preset);
     let popup = render_bottom_popup(&chat, /*width*/ 100);
-    assert!(!popup.contains("s session"), "{popup}");
+    assert!(!popup.contains("d save as default"), "{popup}");
     while rx.try_recv().is_ok() {}
-    chat.handle_key_event(KeyEvent::from(KeyCode::Char('s')));
+    chat.handle_key_event(KeyEvent::from(KeyCode::Char('d')));
     assert!(
         std::iter::from_fn(|| rx.try_recv().ok())
-            .any(|event| matches!(event, AppEvent::ApplyModelSelection { .. }))
+            .any(|event| matches!(event, AppEvent::SelectSessionModel { .. }))
     );
 }
