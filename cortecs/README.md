@@ -16,6 +16,24 @@ cortecs/install.sh            # builds and installs ~/.local/bin/cortecs-codex
 The first release build takes several minutes. Use `--prefix DIR` to install somewhere
 else, or `--debug` for a faster unoptimized build.
 
+### Keep credentials away from the sandbox (recommended)
+
+Whatever a command prints is sent to cortecs and the model provider. By default sandboxed
+commands can read your whole home directory, including `~/.ssh`, `~/.aws` or the cortecs
+API key. To block that, run once:
+
+```sh
+cortecs/install.sh --protect-secrets   # writes /etc/codex/requirements.toml (needs sudo)
+```
+
+This adds a `deny_read` list (SSH and GPG keys, cloud and Kubernetes credentials, `gh`,
+Docker and package-registry tokens, browser profiles, Codex API keys) to the system-wide
+Codex requirements. Sandboxed commands cannot read these paths in any permission mode, and
+commands you approve to run with more permissions stay sandboxed for these paths too. Only
+full access (no sandbox) ignores the list. It applies to all users and to any upstream Codex
+on the machine. Running it again updates the list; edit the file to add your own paths.
+Linux needs `bwrap` (bubblewrap) installed, which Codex also uses for its normal sandbox.
+
 ## Get started
 
 ```sh
