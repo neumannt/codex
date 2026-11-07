@@ -75,13 +75,17 @@ protect_secrets() {
     secrets_block >> "$tmp"
   fi
 
-  if ! { mkdir -p "$(dirname "$requirements_file")" && install -m 644 "$tmp" "$requirements_file"; } 2>/dev/null; then
+  # Every user's Codex reads this file, so the directory must be world-readable no
+  # matter the umask (sudo often keeps a restrictive one). `install -d -m` also fixes
+  # the mode of an existing directory.
+  requirements_dir=$(dirname "$requirements_file")
+  if ! { install -d -m 755 "$requirements_dir" && install -m 644 "$tmp" "$requirements_file"; } 2>/dev/null; then
     if ! command -v sudo >/dev/null 2>&1; then
       echo "error: writing $requirements_file needs root, and sudo is not available" >&2
       exit 1
     fi
     echo "==> Writing $requirements_file (asks for your sudo password)"
-    sudo mkdir -p "$(dirname "$requirements_file")"
+    sudo install -d -m 755 "$requirements_dir"
     sudo install -m 644 "$tmp" "$requirements_file"
   fi
   echo "==> Sandboxed commands can no longer read credentials; see $requirements_file"
