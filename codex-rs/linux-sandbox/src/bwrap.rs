@@ -619,7 +619,12 @@ fn create_filesystem_args(
     unreadable_ancestors_of_writable_roots.sort_by_key(|path| path_depth(path));
 
     for unreadable_root in &unreadable_ancestors_of_writable_roots {
-        append_unreadable_root_args(&mut bwrap_args, unreadable_root, &allowed_write_paths)?;
+        append_unreadable_root_args(
+            &mut bwrap_args,
+            unreadable_root,
+            &allowed_write_paths,
+            /*read_only_mounts*/ &[],
+        )?;
     }
 
     for writable_root in &sorted_writable_roots {
@@ -689,6 +694,7 @@ fn create_filesystem_args(
             &mut read_only_subpaths,
             root,
             protected_metadata_names,
+            &unreadable_paths,
         );
         if let Some(target) = &symlink_target {
             read_only_subpaths = remap_paths_for_symlink_target(read_only_subpaths, root, target);
@@ -696,6 +702,13 @@ fn create_filesystem_args(
                 remap_paths_for_symlink_target(deferred_read_only_subpaths, root, target);
         }
         read_only_subpaths.sort_by_key(|path| path_depth(path));
+        // Read-only carveouts mounted for this root, so missing deny paths below
+        // them can be recognized as already impossible to create.
+        let read_only_mounts: Vec<PathBuf> = read_only_subpaths
+            .iter()
+            .filter(|path| !deferred_read_only_subpaths.contains(path))
+            .cloned()
+            .collect();
         for subpath in read_only_subpaths {
             if let Some(symlink) =
                 first_writable_symlink_component_in_path(&subpath, &allowed_write_paths)
@@ -752,7 +765,12 @@ fn create_filesystem_args(
         }
         nested_unreadable_roots.sort_by_key(|path| path_depth(path));
         for unreadable_root in nested_unreadable_roots {
-            append_unreadable_root_args(&mut bwrap_args, &unreadable_root, &allowed_write_paths)?;
+            append_unreadable_root_args(
+                &mut bwrap_args,
+                &unreadable_root,
+                &allowed_write_paths,
+                &read_only_mounts,
+            )?;
         }
     }
 
@@ -768,7 +786,12 @@ fn create_filesystem_args(
         .collect();
     rootless_unreadable_roots.sort_by_key(|path| path_depth(path));
     for unreadable_root in rootless_unreadable_roots {
-        append_unreadable_root_args(&mut bwrap_args, &unreadable_root, &allowed_write_paths)?;
+        append_unreadable_root_args(
+            &mut bwrap_args,
+            &unreadable_root,
+            &allowed_write_paths,
+            /*read_only_mounts*/ &[],
+        )?;
     }
 
     if options.mask_wslg_distro
@@ -801,9 +824,17 @@ fn append_metadata_path_masks_for_writable_root(
     read_only_subpaths: &mut Vec<PathBuf>,
     root: &Path,
     protected_metadata_names: &[String],
+    unreadable_paths: &HashSet<PathBuf>,
 ) {
     for name in protected_metadata_names {
         let path = root.join(name);
+        // A denied metadata path (e.g. `~/.aws` from a deny-read list) gets the
+        // stronger deny mask below. Masking it here too would mount twice on the
+        // same target, which fails when the path is missing (empty directory
+        // first, then empty file: "Destination is not a file").
+        if unreadable_paths.contains(&path) {
+            continue;
+        }
         if !read_only_subpaths.iter().any(|subpath| subpath == &path) {
             read_only_subpaths.push(path);
         }
@@ -1344,6 +1375,7 @@ fn append_unreadable_root_args(
     bwrap_args: &mut BwrapArgs,
     unreadable_root: &Path,
     allowed_write_paths: &[PathBuf],
+    read_only_mounts: &[PathBuf],
 ) -> Result<()> {
     if let Some(symlink) =
         first_writable_symlink_component_in_path(unreadable_root, allowed_write_paths)
@@ -1365,6 +1397,11 @@ fn append_unreadable_root_args(
     if !unreadable_root.exists() {
         if let Some(first_missing_component) = find_first_non_existent_component(unreadable_root)
             && is_within_allowed_write_paths(&first_missing_component, allowed_write_paths)
+            && !is_within_read_only_mount(
+                &first_missing_component,
+                read_only_mounts,
+                allowed_write_paths,
+            )
         {
             append_missing_empty_file_bind_data_args(bwrap_args, &first_missing_component)?;
         }
@@ -1416,6 +1453,26 @@ fn append_existing_unreadable_path_args(
     bwrap_args.args.push("--perms".to_string());
     bwrap_args.args.push("000".to_string());
     append_empty_file_bind_data_args(bwrap_args, unreadable_root)
+}
+
+/// Returns true when `path` is at or below a read-only mount that no deeper writable
+/// root reopens. The sandboxed process cannot create such a path, so a missing deny
+/// path there needs no mask. Masking it would even fail: bwrap cannot create the
+/// mount target inside a read-only mount ("Can't create file ... Read-only file
+/// system"), or the target is the read-only mount's own empty directory ("Destination
+/// is not a file"). cortecs fork: hit by deny lists such as `~/.codex/auth.json` when
+/// the session starts in the home directory.
+fn is_within_read_only_mount(
+    path: &Path,
+    read_only_mounts: &[PathBuf],
+    allowed_write_paths: &[PathBuf],
+) -> bool {
+    read_only_mounts.iter().any(|read_only| {
+        path.starts_with(read_only)
+            && !allowed_write_paths
+                .iter()
+                .any(|root| root.starts_with(read_only) && path.starts_with(root))
+    })
 }
 
 /// Returns true when `path` is under any allowed writable root.

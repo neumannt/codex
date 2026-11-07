@@ -755,6 +755,122 @@ fn missing_project_root_metadata_carveouts_use_metadata_path_masks() {
     assert!(synthetic_targets.contains(&PathBuf::from(&dot_codex)));
 }
 
+// cortecs fork: a deny-read list (e.g. `~/.aws` from /etc/codex/requirements.toml) used
+// to mask a missing protected metadata path twice when the writable root is its parent
+// (starting in the home directory): empty directory, then empty file on the same target,
+// which bwrap rejects with "Destination is not a file".
+#[test]
+fn denied_missing_metadata_path_is_masked_only_once() {
+    let temp_dir = TempDir::new().expect("temp dir");
+    let dot_aws = temp_dir.path().join(".aws");
+    let policy = FileSystemSandboxPolicy::restricted(vec![
+        FileSystemSandboxEntry {
+            path: FileSystemPath::Special {
+                value: FileSystemSpecialPath::Root,
+            },
+            access: FileSystemAccessMode::Read,
+            missing_path_behavior: None,
+        },
+        FileSystemSandboxEntry {
+            path: FileSystemPath::Special {
+                value: FileSystemSpecialPath::project_roots(/*subpath*/ None),
+            },
+            access: FileSystemAccessMode::Write,
+            missing_path_behavior: None,
+        },
+        FileSystemSandboxEntry {
+            path: FileSystemPath::Path {
+                path: AbsolutePathBuf::from_absolute_path(&dot_aws).expect("absolute path").into(),
+            },
+            access: FileSystemAccessMode::Deny,
+            missing_path_behavior: None,
+        },
+    ]);
+
+    let args = create_filesystem_args(&policy, temp_dir.path(), BwrapOptions::default())
+        .expect("filesystem args");
+    let dot_aws = path_to_string(&dot_aws);
+    let mounts_on_dot_aws = args
+        .args
+        .windows(2)
+        .filter(|pair| {
+            matches!(pair[0].as_str(), "--tmpfs" | "--ro-bind" | "--bind")
+                && pair[1] == dot_aws
+        })
+        .count()
+        + args
+            .args
+            .windows(3)
+            .filter(|triple| triple[0] == "--ro-bind-data" && triple[2] == dot_aws)
+            .count();
+    assert_eq!(mounts_on_dot_aws, 1, "{:#?}", args.args);
+    assert_empty_file_bound_without_perms(&args.args, Path::new(&dot_aws));
+}
+
+// cortecs fork: a missing deny path below a read-only metadata mount (e.g.
+// `~/.codex/auth.json` with the session in the home directory) cannot be created by the
+// sandboxed process anyway, and bwrap cannot create its mount target there.
+#[test]
+fn missing_denied_path_below_metadata_mount_is_not_masked() {
+    for create_dot_codex in [false, true] {
+        let temp_dir = TempDir::new().expect("temp dir");
+        let dot_codex = temp_dir.path().join(".codex");
+        if create_dot_codex {
+            std::fs::create_dir(&dot_codex).expect("create .codex");
+            // Non-empty, so it is bound read-only rather than replaced by an empty mount.
+            std::fs::write(dot_codex.join("config.toml"), "").expect("write config.toml");
+        }
+        let auth_json = dot_codex.join("auth.json");
+        let policy = FileSystemSandboxPolicy::restricted(vec![
+            FileSystemSandboxEntry {
+                path: FileSystemPath::Special {
+                    value: FileSystemSpecialPath::Root,
+                },
+                access: FileSystemAccessMode::Read,
+                missing_path_behavior: None,
+            },
+            FileSystemSandboxEntry {
+                path: FileSystemPath::Special {
+                    value: FileSystemSpecialPath::project_roots(/*subpath*/ None),
+                },
+                access: FileSystemAccessMode::Write,
+                missing_path_behavior: None,
+            },
+            FileSystemSandboxEntry {
+                path: FileSystemPath::Path {
+                    path: AbsolutePathBuf::from_absolute_path(&auth_json)
+                        .expect("absolute path")
+                        .into(),
+                },
+                access: FileSystemAccessMode::Deny,
+                missing_path_behavior: None,
+            },
+        ]);
+
+        let args = create_filesystem_args(&policy, temp_dir.path(), BwrapOptions::default())
+            .expect("filesystem args");
+        let dot_codex = path_to_string(&dot_codex);
+        let auth_json = path_to_string(&auth_json);
+        assert!(
+            !args.args.windows(3).any(|triple| triple[0] == "--ro-bind-data"
+                && (triple[2] == dot_codex || triple[2] == auth_json)),
+            "create_dot_codex={create_dot_codex}: {:#?}",
+            args.args
+        );
+        if create_dot_codex {
+            assert!(
+                args.args
+                    .windows(3)
+                    .any(|triple| triple == ["--ro-bind", &dot_codex, &dot_codex]),
+                "{:#?}",
+                args.args
+            );
+        } else {
+            assert_empty_directory_mounted_read_only(&args.args, Path::new(&dot_codex));
+        }
+    }
+}
+
 #[test]
 fn missing_user_project_root_subpath_rules_are_still_enforced() {
     let temp_dir = TempDir::new().expect("temp dir");
