@@ -131,6 +131,7 @@ members = [
     "utils/path-uri",
     "utils/cargo-bin",
     "git-utils",
+    "gui",
     "utils/cache",
     "utils/critical-path",
     "utils/git-discovery",
@@ -258,6 +259,7 @@ codex-install-context = { path = "install-context" }
 codex-file-search = { path = "file-search" }
 codex-file-watcher = { path = "file-watcher" }
 codex-git-utils = { path = "git-utils" }
+codex-gui = { path = "gui" }
 codex-guardian-context = { path = "guardian-context" }
 codex-hooks = { path = "hooks" }
 codex-history = { path = "history" }

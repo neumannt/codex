@@ -51,6 +51,33 @@ export CORTECS_API_KEY=...                                 # takes precedence ov
 
 Run a one-shot task without the TUI with `cortecs-codex exec "…"`.
 
+## Browser GUI (experimental)
+
+```sh
+cortecs-codex gui             # opens the current folder in your browser
+cortecs-codex gui ~/src/app   # or another folder; --no-browser only prints the URL
+```
+
+This starts a small local web server (127.0.0.1 only, guarded by a random token in the URL)
+and opens the page in your browser. Keep the terminal open; Ctrl-C quits. Each browser tab
+runs its own `cortecs-codex app-server`, the same engine the TUI uses, so config, the API
+key, the sandbox, approvals and `-c` overrides behave exactly as in the TUI.
+
+- **Folders:** pick a folder with *Change…*. A folder without a saved trust decision gets the
+  same prompt as in the TUI (*Trust and continue* / *Look without trusting* / *Cancel*).
+- **Sessions:** the sidebar lists the saved sessions of the current folder, from the TUI and
+  the GUI alike. GUI sessions are stored like TUI sessions and appear in `cortecs-codex resume`.
+- **Switching between TUI and GUI:** a session can be open in only one place at a time. Opening
+  it in a second place fails with "already has an active writer" until you quit it in the TUI,
+  or switch to another session or close the tab in the GUI.
+- **Approvals:** commands and edits that need approval open a dialog (run, allow for the
+  session, decline, or decline and stop the turn).
+- The model picker overrides `model` from `config.toml` only once you pick a model.
+- **Slash commands:** type `/` in the message box for a list: `/new`, `/clear`, `/status`,
+  `/model`, `/stop`, `/rename`, `/compact`, `/review`, `/init`, `/diff`, `/fork`, `/archive`,
+  `/delete`, `/mcp`, `/skills`, `/pwd`, `/help`. `/status` includes the cost reported by cortecs
+  for everything run in that browser tab. Start a message with `//` to send a literal leading slash.
+
 ## Models
 
 `/model` lists the cortecs models that support tool calling, with prices (per 1M input/output
@@ -94,6 +121,7 @@ models without tool calling, can still be selected by name.
 | Daemon | The background app-server daemon is off by default; the app server runs in-process. |
 | Costs | `/status` shows a `Cost` line: the sum of the per-request cost reported by cortecs since `cortecs-codex` started (all threads, including sub-agents and compaction). |
 | Untrusted folders | The folder prompt has a third choice, **Look without trusting**: the folder opens for this session only, nothing is saved, and `AGENTS.md`, project skills (`.agents/skills`, `.codex/skills`), project config, hooks and exec policies are ignored. Anything other than read-only commands needs your approval. `--untrusted` does the same without the prompt, also for `exec`. Folders marked `trust_level = "untrusted"` never get project skills. |
+| GUI | `cortecs-codex gui` adds an experimental browser GUI (new `codex-rs/gui` crate) on top of the app server. Upstream has no GUI in this repository. The app-server's `thread/tokenUsage/updated` notification gains an optional `providerCostMicros` field so clients can show the cortecs cost. |
 | Thread titles | No automatic model-generated thread titles (they cost an extra request per thread). `/rename` still works. |
 
 You can turn things back on in `config.toml`, for example `[features] plugins = true` or
@@ -122,8 +150,8 @@ git checkout cortecs && git rebase main                       # or: git merge ma
 ```
 
 Most fork-specific code is in files that upstream does not have:
-`codex-rs/model-provider/src/cortecs.rs`, `codex-rs/protocol/src/provider_cost.rs` and
-`cortecs/`. The rest is small, commented hooks (search the code for `cortecs`).
+`codex-rs/model-provider/src/cortecs.rs`, `codex-rs/protocol/src/provider_cost.rs`,
+`codex-rs/gui/` and `cortecs/`. The rest is small, commented hooks (search the code for `cortecs`).
 
 Tests that check upstream OpenAI defaults are marked
 `#[ignore = "cortecs fork: ..."]`. If an upstream merge adds more tests like that, mark

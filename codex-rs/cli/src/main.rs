@@ -175,6 +175,9 @@ enum Subcommand {
     /// [experimental] Manage the app-server daemon with remote control enabled.
     RemoteControl(RemoteControlCommand),
 
+    /// [experimental] Open a browser-based GUI for this folder.
+    Gui(codex_gui::GuiCli),
+
     /// Launch the Desktop app (opens the app installer if missing).
     #[cfg(any(target_os = "macos", target_os = "windows"))]
     App(app_cmd::AppCommand),
@@ -1719,6 +1722,14 @@ async fn dispatch_cli(
             )?;
             run_update_command()?;
         }
+        Some(Subcommand::Gui(gui_cli)) => {
+            reject_remote_mode_for_subcommand(
+                root_remote.as_deref(),
+                root_remote_auth_token_env.as_deref(),
+                "gui",
+            )?;
+            codex_gui::run_gui(gui_cli, root_config_overrides.clone()).await?;
+        }
         Some(Subcommand::Doctor(doctor_cli)) => {
             reject_remote_mode_for_subcommand(
                 root_remote.as_deref(),
@@ -2385,6 +2396,7 @@ fn unsupported_subcommand_name_for_strict_config(
         Some(Subcommand::Login(_)) => Some("login"),
         Some(Subcommand::Logout(_)) => Some("logout"),
         Some(Subcommand::Completion(_)) => Some("completion"),
+        Some(Subcommand::Gui(_)) => Some("gui"),
         Some(Subcommand::Update) => Some("update"),
         Some(Subcommand::Cloud(_)) => Some("cloud"),
         Some(Subcommand::Sandbox(_)) => Some("sandbox"),

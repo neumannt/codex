@@ -52,6 +52,7 @@ codex-http-client = { workspace = true }
 codex-exec = { workspace = true }
 codex-exec-server = { workspace = true }
 codex-exec-server-cli = { workspace = true }
+codex-gui = { workspace = true }
 codex-execpolicy = { workspace = true }
 codex-extension-api = { workspace = true }
 codex-features = { workspace = true }

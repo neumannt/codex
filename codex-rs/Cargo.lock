@@ -2574,6 +2574,7 @@ dependencies = [
  "codex-features",
  "codex-git-attribution",
  "codex-git-utils",
+ "codex-gui",
  "codex-history",
  "codex-home",
  "codex-http-client",
@@ -3800,6 +3801,32 @@ dependencies = [
  "codex-message-board",
  "codex-protocol",
  "codex-state",
+]
+
+[[package]]
+name = "codex-gui"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "clap",
+ "codex-config",
+ "codex-core",
+ "codex-exec-server",
+ "codex-git-utils",
+ "codex-protocol",
+ "codex-utils-absolute-path",
+ "codex-utils-cli",
+ "futures",
+ "pretty_assertions",
+ "rand 0.9.3",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-util",
+ "toml 0.9.11+spec-1.1.0",
+ "url",
+ "webbrowser",
 ]
 
 [[package]]
