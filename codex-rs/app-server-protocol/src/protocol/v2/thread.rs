@@ -2012,6 +2012,12 @@ pub struct ThreadTokenUsageUpdatedNotification {
     pub thread_id: String,
     pub turn_id: String,
     pub token_usage: ThreadTokenUsage,
+    /// cortecs fork: provider-reported cost of all requests made by this app-server
+    /// process so far, in millionths of the account currency (EUR by default). Absent
+    /// when the provider reports no cost.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional, type = "number")]
+    pub provider_cost_micros: Option<u64>,
 }
 
 /// Internal-only notification containing the exact usage from one upstream

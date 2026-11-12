@@ -6464,6 +6464,15 @@
     },
     "ThreadTokenUsageUpdatedNotification": {
       "properties": {
+        "providerCostMicros": {
+          "description": "cortecs fork: provider-reported cost of all requests made by this app-server process so far, in millionths of the account currency (EUR by default). Absent when the provider reports no cost.",
+          "format": "uint64",
+          "minimum": 0.0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "threadId": {
           "type": "string"
         },

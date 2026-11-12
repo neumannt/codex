@@ -1661,6 +1661,7 @@ async fn handle_token_count_event(
             thread_id: conversation_id.to_string(),
             turn_id,
             token_usage,
+            provider_cost_micros: codex_protocol::provider_cost::total_cost_micros(),
         };
         outgoing
             .send_server_notification(ServerNotification::ThreadTokenUsageUpdated(notification))

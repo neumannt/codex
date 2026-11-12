@@ -87,6 +87,7 @@ async fn selected_usage_is_cached_and_account_changes_discard_old_results() -> R
     app.track_agents_overview_notification(&ServerNotification::ThreadTokenUsageUpdated(
         ThreadTokenUsageUpdatedNotification {
             thread_id: selected.to_string(),
+            provider_cost_micros: None,
             turn_id: "turn".into(),
             token_usage: ThreadTokenUsage {
                 total: tokens.clone(),

@@ -517,6 +517,7 @@ pub(super) fn handle_token_count(chat: &mut ChatWidget, info: Option<TokenUsageI
                 ServerNotification::ThreadTokenUsageUpdated(
                     codex_app_server_protocol::ThreadTokenUsageUpdatedNotification {
                         thread_id: thread_id(chat),
+                        provider_cost_micros: None,
                         turn_id: chat
                             .turn_lifecycle
                             .last_turn_id

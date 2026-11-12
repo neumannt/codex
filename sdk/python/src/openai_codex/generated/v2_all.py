@@ -11192,6 +11192,14 @@ class ThreadTokenUsageUpdatedNotification(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
     )
+    provider_cost_micros: Annotated[
+        int | None,
+        Field(
+            alias="providerCostMicros",
+            description="cortecs fork: provider-reported cost of all requests made by this app-server process so far, in millionths of the account currency (EUR by default). Absent when the provider reports no cost.",
+            ge=0,
+        ),
+    ] = None
     thread_id: Annotated[str, Field(alias="threadId")]
     token_usage: Annotated[ThreadTokenUsage, Field(alias="tokenUsage")]
     turn_id: Annotated[str, Field(alias="turnId")]

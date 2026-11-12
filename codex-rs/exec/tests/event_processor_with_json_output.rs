@@ -1333,6 +1333,7 @@ fn token_usage_update_is_emitted_on_turn_completion() {
         processor.collect_thread_events(ServerNotification::ThreadTokenUsageUpdated(
             codex_app_server_protocol::ThreadTokenUsageUpdatedNotification {
                 thread_id: "thread-1".to_string(),
+                provider_cost_micros: None,
                 turn_id: "turn-1".to_string(),
                 token_usage: ThreadTokenUsage {
                     total: TokenUsageBreakdown {

@@ -49,6 +49,7 @@ pub(super) async fn send_thread_token_usage_update_to_connection(
         thread_id: thread_id.to_string(),
         turn_id: token_usage_turn_id,
         token_usage: ThreadTokenUsage::from(info),
+        provider_cost_micros: codex_protocol::provider_cost::total_cost_micros(),
     };
     outgoing
         .send_server_notification_to_connections(

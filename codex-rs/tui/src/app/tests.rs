@@ -8674,6 +8674,7 @@ fn token_usage_notification(
 ) -> ServerNotification {
     ServerNotification::ThreadTokenUsageUpdated(ThreadTokenUsageUpdatedNotification {
         thread_id: thread_id.to_string(),
+        provider_cost_micros: None,
         turn_id: turn_id.to_string(),
         token_usage: ThreadTokenUsage {
             total: TokenUsageBreakdown {
